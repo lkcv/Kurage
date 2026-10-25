@@ -152,8 +152,10 @@ class DownloadQueue extends ChangeNotifier {
   }
 
   bool _recoverable(Object error) {
-    if (error is InterruptedDownload || error is SocketException ||
-        error is HttpException || error is TimeoutException ||
+    if (error is InterruptedDownload ||
+        error is SocketException ||
+        error is HttpException ||
+        error is TimeoutException ||
         error is HandshakeException) {
       return true;
     }
@@ -164,8 +166,7 @@ class DownloadQueue extends ChangeNotifier {
     }
     // Streaming-body errors may be wrapped as DioExceptionType.unknown.
     // File errors and malformed bodies must remain terminal failures.
-    if (error.error is FileSystemException ||
-        error.error is FormatException) {
+    if (error.error is FileSystemException || error.error is FormatException) {
       return false;
     }
     return error.type == DioExceptionType.connectionError ||
@@ -222,8 +223,10 @@ class DownloadQueue extends ChangeNotifier {
           final id = record.entryId;
           final state = record.state;
           if (id.isEmpty) continue;
-          if (state != 'queued' && state != 'downloading' &&
-              state != 'waitingForNetwork' && state != 'waitingForServer' &&
+          if (state != 'queued' &&
+              state != 'downloading' &&
+              state != 'waitingForNetwork' &&
+              state != 'waitingForServer' &&
               state != 'failed') {
             continue;
           }
@@ -236,8 +239,10 @@ class DownloadQueue extends ChangeNotifier {
           }
           final job = DownloadJob(entry);
           job.progress = await retainedPageDownloadProgress(entry);
-          if (state == 'queued' || state == 'downloading' ||
-              state == 'waitingForNetwork' || state == 'waitingForServer') {
+          if (state == 'queued' ||
+              state == 'downloading' ||
+              state == 'waitingForNetwork' ||
+              state == 'waitingForServer') {
             job.state = DownloadJobState.queued;
           } else {
             job.state = DownloadJobState.failed;
@@ -304,13 +309,15 @@ class DownloadQueue extends ChangeNotifier {
 
   ValueListenable<int> get headerChanges => _headerChanges;
   UnmodifiableListView<DownloadJob> get jobs => UnmodifiableListView(_jobs);
-  int get pendingCount => _jobs.where((job) =>
-      job.state == DownloadJobState.queued ||
-      job.state == DownloadJobState.downloading ||
-      job.state == DownloadJobState.canceling ||
-      _isWaiting(job.state)).length;
-  int get failedCount => _jobs.where((job) =>
-      job.state == DownloadJobState.failed).length;
+  int get pendingCount => _jobs
+      .where((job) =>
+          job.state == DownloadJobState.queued ||
+          job.state == DownloadJobState.downloading ||
+          job.state == DownloadJobState.canceling ||
+          _isWaiting(job.state))
+      .length;
+  int get failedCount =>
+      _jobs.where((job) => job.state == DownloadJobState.failed).length;
 
   DownloadJob enqueue(Entry entry) {
     // Completed downloads don't need to re-enter the queue.
@@ -357,7 +364,8 @@ class DownloadQueue extends ChangeNotifier {
   /// a killed app must not resume an item the user removed.
   void cancel(String id) {
     for (final job in _jobs.toList()) {
-      if (job.id != id || job.state == DownloadJobState.canceling ||
+      if (job.id != id ||
+          job.state == DownloadJobState.canceling ||
           job.state == DownloadJobState.canceled) {
         continue;
       }
@@ -398,8 +406,8 @@ class DownloadQueue extends ChangeNotifier {
   void cancelQueued(String id) => cancel(id);
 
   void dismissFailure(String id) {
-    _jobs.removeWhere((job) =>
-        job.id == id && job.state == DownloadJobState.failed);
+    _jobs.removeWhere(
+        (job) => job.id == id && job.state == DownloadJobState.failed);
     _changed();
   }
 
@@ -436,8 +444,9 @@ class DownloadQueue extends ChangeNotifier {
         try {
           // A queued Entry may be old by the time its turn arrives.
           final isar = Isar.getInstance();
-          final latest = isar == null ? null :
-              await isar.entrys.where().idEqualTo(job.id).findFirst();
+          final latest = isar == null
+              ? null
+              : await isar.entrys.where().idEqualTo(job.id).findFirst();
           if (job.state == DownloadJobState.canceling) {
             throw const DownloadCanceled();
           }
@@ -448,7 +457,8 @@ class DownloadQueue extends ChangeNotifier {
               if (job.state != DownloadJobState.downloading) return;
               final now = DateTime.now();
               // Don't repaint a progress sheet on every Dio receive callback.
-              if (value >= 100 || _lastProgressNotice == null ||
+              if (value >= 100 ||
+                  _lastProgressNotice == null ||
                   now.difference(_lastProgressNotice!) >=
                       const Duration(milliseconds: 250)) {
                 // Real forward byte progress is a successful connection,
@@ -496,6 +506,7 @@ class DownloadQueue extends ChangeNotifier {
             _scheduleRetry(quickReconnect: quickReconnect);
             break;
           }
+          debugPrint('DownloadQueue: ${job.id} failed: $error');
           job.state = DownloadJobState.failed;
           job._completion.complete(null);
         }

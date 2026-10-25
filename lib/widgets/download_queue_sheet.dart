@@ -1,5 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:kurage/providers/download_queue.dart';
+import 'package:kurage/providers/error_classification.dart';
+
+String _downloadFailureMessage(Object? error) {
+  if (error is String &&
+      (error == 'Download interrupted when the app stopped. Tap Retry.' ||
+          error == 'Previous download failed. Tap Retry.')) {
+    return error;
+  }
+  final failure = classifyError(error);
+  return switch (failure.kind) {
+    AppErrorKind.httpResponse => switch (failure.httpStatus) {
+        401 || 403 => 'Jellyfin denied the download request',
+        404 => 'Volume not found on Jellyfin',
+        int status => 'Jellyfin returned HTTP $status',
+        _ => 'Download failed. Tap Retry.',
+      },
+    AppErrorKind.storage => 'Could not access download storage',
+    AppErrorKind.invalidData => 'Invalid or unsupported CBZ',
+    AppErrorKind.unsupported => 'Unsupported volume format',
+    AppErrorKind.timeout || AppErrorKind.connectionTimeout =>
+      'Download request timed out',
+    AppErrorKind.unreachable || AppErrorKind.network =>
+      'Could not download from Jellyfin',
+    _ => 'Download failed. Tap Retry.',
+  };
+}
 
 /// Queue state only; never creates a new cover image provider.
 class DownloadQueueSheet extends StatelessWidget {
@@ -83,7 +109,7 @@ class DownloadQueueSheet extends StatelessWidget {
                                     const SizedBox(height: 5),
                                     LinearProgressIndicator(value: job.progress / 100),
                                   ],
-                                  if (failed) Text('${job.error}', maxLines: 2,
+                                  if (failed) Text(_downloadFailureMessage(job.error), maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: Theme.of(context).textTheme.bodySmall),
                                 ],
