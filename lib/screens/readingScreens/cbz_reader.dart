@@ -25,16 +25,20 @@ import 'package:kurage/widgets/cover_opening_route.dart';
 class CbzReader extends StatefulWidget {
   final String title;
   final String comicId;
+
   /// Signal the cover transition once the first page is decoded and painted.
   final ValueNotifier<bool>? openingReady;
   final ValueNotifier<ReaderOpeningState>? openingState;
+
   /// Shared with the opening route to skip the reverse fade on page zero.
   final ValueNotifier<bool>? skipReturnFade;
+
   /// Available only when reading directly from an ordered Collection session.
   final String? nextVolumeTitle;
   final Future<String?> Function()? onNextVolume;
   final String? previousVolumeTitle;
   final Future<String?> Function()? onPreviousVolume;
+
   /// Prepare the active volume's cover position before popping this route.
   final Future<void> Function()? onPrepareCoverReturn;
   final bool continuingVolume;
@@ -121,6 +125,8 @@ class _CbzReaderState extends State<CbzReader>
   Session? _streamSession;
   final Map<int, File> _pageCache = {};
   final Map<int, Future<File>> _pageLoads = {};
+  final Map<int, ClassifiedError> _failedPageLoads = {};
+  int _retryGeneration = 0;
   final Map<int, String> _chapterLabels = {};
   Future<void>? _streamInitialization;
   // The previous reader instance may still be copying pages when reopened.
@@ -167,12 +173,13 @@ class _CbzReaderState extends State<CbzReader>
             break;
           }
         }
-        final active = _switchingToLocal || (job != null &&
-            (job.state == DownloadJobState.queued ||
-                job.state == DownloadJobState.downloading ||
-                job.state == DownloadJobState.waitingForNetwork ||
-                job.state == DownloadJobState.waitingForServer ||
-                job.state == DownloadJobState.canceling));
+        final active = _switchingToLocal ||
+            (job != null &&
+                (job.state == DownloadJobState.queued ||
+                    job.state == DownloadJobState.downloading ||
+                    job.state == DownloadJobState.waitingForNetwork ||
+                    job.state == DownloadJobState.waitingForServer ||
+                    job.state == DownloadJobState.canceling));
         final offline = Provider.of<ConnectionManager>(context).status ==
             ConnectionStatus.offline;
         final enabled = !active && !offline;
@@ -237,10 +244,10 @@ class _CbzReaderState extends State<CbzReader>
         final cachedCount = await ReaderPageCache.getPageCount(comicId);
         if (cachedCount != null && cachedCount > 0) {
           pageNums = cachedCount;
-          final cachedIndex = ((await ReaderPageCache.getCurrentPage(comicId)) ??
-                  pageNum)
-              .clamp(0, pageNums - 1)
-              .toInt();
+          final cachedIndex =
+              ((await ReaderPageCache.getCurrentPage(comicId)) ?? pageNum)
+                  .clamp(0, pageNums - 1)
+                  .toInt();
           final saved = await ReaderPageCache.getPage(comicId, cachedIndex);
           if (saved != null) {
             _pageCache[cachedIndex] = saved;
@@ -257,7 +264,8 @@ class _CbzReaderState extends State<CbzReader>
             // Reopening never needs the network for the retained page.
             // The cache is touched before adjacent-page prefetch begins.
             ReaderPageCache.touch(
-              volumeId: comicId, pageCount: pageNums,
+              volumeId: comicId,
+              pageCount: pageNums,
               currentPage: _currentPage,
             ).catchError((Object e) {
               logger.w('ReaderPageCache: could not touch volume: $e');
@@ -288,7 +296,8 @@ class _CbzReaderState extends State<CbzReader>
         if (await namesFile.exists()) {
           try {
             final decoded = jsonDecode(await namesFile.readAsString());
-            if (decoded is List && decoded.length == pages.length &&
+            if (decoded is List &&
+                decoded.length == pages.length &&
                 decoded.every((value) => value is String)) {
               originalNames = decoded.cast<String>();
             }
@@ -329,18 +338,17 @@ class _CbzReaderState extends State<CbzReader>
         return;
       }
       if (!mounted) return;
-      final message = _isStreaming &&
-              connection.status == ConnectionStatus.offline
-          ? 'Server is offline and this page is not cached'
-          : _isStreaming && connection.status == ConnectionStatus.authFailed
-              ? 'Jellyfin authentication failed'
-              : classifyError(e).kind == AppErrorKind.invalidData
-                  ? 'Could not read this volume as a CBZ'
-                  : _isStreaming
-                      ? 'Could not load this volume from Jellyfin'
-                      : 'Could not open this volume';
-      if (widget.continuingVolume &&
-          widget.onContinuationLoadFailed != null) {
+      final message =
+          _isStreaming && connection.status == ConnectionStatus.offline
+              ? 'Server is offline and this page is not cached'
+              : _isStreaming && connection.status == ConnectionStatus.authFailed
+                  ? 'Jellyfin authentication failed'
+                  : classifyError(e).kind == AppErrorKind.invalidData
+                      ? 'Could not read this volume as a CBZ'
+                      : _isStreaming
+                          ? 'Could not load this volume from Jellyfin'
+                          : 'Could not open this volume';
+      if (widget.continuingVolume && widget.onContinuationLoadFailed != null) {
         widget.onContinuationLoadFailed!();
       } else {
         final messenger = ScaffoldMessenger.of(context);
@@ -470,9 +478,15 @@ class _CbzReaderState extends State<CbzReader>
       url: server,
       itemId: entry.id,
       headers: headers,
+      onPageFetched: () {
+        if (mounted) {
+          context.read<ConnectionManager>().reportConnectionSuccess(
+                session: session,
+              );
+        }
+      },
     );
   }
-
 
   /// Awaited precache of local extracted files (used when leaving streaming).
   Future<void> _precacheLocalAround(int index) async {
@@ -495,6 +509,7 @@ class _CbzReaderState extends State<CbzReader>
     final start = (index - 3).clamp(0, pageNums - 1).toInt();
     final end = (index + 3).clamp(0, pageNums - 1).toInt();
     for (int i = start; i <= end; i++) {
+      if (_failedPageLoads.containsKey(i)) continue;
       // _loadPageFile now waits for the durable copy. This is a read-through
       // cache, not an independent background snapshot of a temporary file.
       _loadPageFile(i).then((file) {
@@ -503,17 +518,36 @@ class _CbzReaderState extends State<CbzReader>
             logger.w('CbzReader: image precache failed: $error');
           });
         }
-      }).catchError((Object error) {
-        logger.w('CbzReader: page $i precache failed: $error');
-      });
+      }).catchError((Object _) {});
     }
   }
 
   Future<File> _loadPageFile(int index) {
     final existing = _pageLoads[index];
     if (existing != null) return existing;
+    final generation = _retryGeneration;
+    Future<File> load() async {
+      try {
+        final file = await _resolvePageFile(index);
+        _failedPageLoads.remove(index);
+        return file;
+      } catch (error) {
+        logger.w('CbzReader: could not load page ${index + 1}: $error');
+        if (generation == _retryGeneration) {
+          _failedPageLoads[index] = classifyError(error);
+          final session = _streamSession;
+          if (!_loading && _isStreaming && session != null && mounted) {
+            context
+                .read<ConnectionManager>()
+                .reportConnectionFailure(error, session: session);
+          }
+        }
+        rethrow;
+      }
+    }
+
     late final Future<File> tracked;
-    tracked = _resolvePageFile(index).whenComplete(() {
+    tracked = load().whenComplete(() {
       // Returning the removed Future from whenComplete would make it await
       // itself forever. The cleanup callback must return void.
       _pageLoads.remove(index);
@@ -556,7 +590,8 @@ class _CbzReaderState extends State<CbzReader>
     final retained = _pageCache[index];
     if (retained != null && await retained.exists()) {
       // Local downloaded files also need a recovery copy.
-      if (!_isStreaming && index < pages.length &&
+      if (!_isStreaming &&
+          index < pages.length &&
           retained.path == pages[index]) {
         return _persistPage(index, retained);
       }
@@ -619,7 +654,8 @@ class _CbzReaderState extends State<CbzReader>
       }
       await stream.init();
       final chapters = _chaptersFromNames(
-        List<String>.generate(stream.pageCount, (i) => stream.pageName(i) ?? ''),
+        List<String>.generate(
+            stream.pageCount, (i) => stream.pageName(i) ?? ''),
       );
       _chapterLabels
         ..clear()
@@ -641,6 +677,7 @@ class _CbzReaderState extends State<CbzReader>
         if (mounted) setState(() {});
       }
     }
+
     final initialization = initializeStream();
     _streamInitialization = initialization;
     try {
@@ -677,6 +714,7 @@ class _CbzReaderState extends State<CbzReader>
       }
       await stream.clear();
     }
+
     final cleanup = finishAndClear();
     _cleanupByVolume[comicId] = cleanup;
     cleanup.then((_) {
@@ -693,7 +731,8 @@ class _CbzReaderState extends State<CbzReader>
 
   void _onDownloadQueueChanged() {
     for (final job in DownloadQueue.instance.jobs) {
-      if (job.id != comicId || job.state == DownloadJobState.failed ||
+      if (job.id != comicId ||
+          job.state == DownloadJobState.failed ||
           job.state == DownloadJobState.canceling ||
           job.state == DownloadJobState.canceled) {
         continue;
@@ -832,7 +871,8 @@ class _CbzReaderState extends State<CbzReader>
         try {
           final isar = Isar.getInstance();
           if (isar == null) return;
-          final entry = await isar.entrys.where().idEqualTo(comicId).findFirst();
+          final entry =
+              await isar.entrys.where().idEqualTo(comicId).findFirst();
           if (entry == null) return;
           entry.pageNum = page;
           // Page indices are zero-based: the final page is pageNums - 1.
@@ -988,23 +1028,26 @@ class _CbzReaderState extends State<CbzReader>
       final atStart = vertical
           ? (_verticalScrollController.hasClients &&
               _verticalScrollController.position.extentBefore <= 1)
-          : (controller != null && controller.hasClients &&
+          : (controller != null &&
+              controller.hasClients &&
               _currentPage == 0 &&
               (controller.page ?? _currentPage.toDouble()).abs() < 0.02);
       final atEnd = vertical
           ? (_verticalScrollController.hasClients &&
               _verticalScrollController.position.extentAfter <= 1)
-          : (controller != null && controller.hasClients &&
+          : (controller != null &&
+              controller.hasClients &&
               _currentPage == pageNums - 1 &&
-              ((controller.page ?? _currentPage.toDouble()) -
-                      (pageNums - 1))
-                  .abs() < 0.02);
-      final eligible = !_volumeSwipePending && pageNums > 0 &&
+              ((controller.page ?? _currentPage.toDouble()) - (pageNums - 1))
+                      .abs() <
+                  0.02);
+      final eligible = !_volumeSwipePending &&
+          pageNums > 0 &&
           !_zoomScrollLocked &&
           !(_zoomState(_activeZoomPage)?.isZoomed ?? false);
       _canSwipeNext = eligible && atEnd && widget.onNextVolume != null;
-      _canSwipePrevious = eligible && atStart &&
-          widget.onPreviousVolume != null;
+      _canSwipePrevious =
+          eligible && atStart && widget.onPreviousVolume != null;
       _volumeSwipeDelta = 0;
       _edgeTurnConsumed = false;
       _firstTouchPage = _activeZoomPage ?? _pageAt(event.position);
@@ -1052,20 +1095,22 @@ class _CbzReaderState extends State<CbzReader>
     // Suppress the fleeting early "Next:" preview: show only the release pill
     // once the swipe is long enough to actually open a neighboring volume.
     if ((_canSwipeNext || _canSwipePrevious) &&
-        _readerTouches.length == 1 && !_gestureHadMultitouch &&
+        _readerTouches.length == 1 &&
+        !_gestureHadMultitouch &&
         !_edgePageTurnPending) {
       final start = _singleFingerStart;
       if (start != null) {
         final travel = event.position - start;
         final vertical = direction == 'vertical';
-        final forward = vertical ? -travel.dy :
-            (direction == 'rtl' ? travel.dx : -travel.dx);
+        final forward = vertical
+            ? -travel.dy
+            : (direction == 'rtl' ? travel.dx : -travel.dx);
         final cross = vertical ? travel.dx.abs() : travel.dy.abs();
         final directionDelta = forward > 0 ? 1 : -1;
-        final available = directionDelta == 1
-            ? _canSwipeNext : _canSwipePrevious;
-        final armed = available && forward.abs() >= 72 &&
-            forward.abs() > cross * 1.3;
+        final available =
+            directionDelta == 1 ? _canSwipeNext : _canSwipePrevious;
+        final armed =
+            available && forward.abs() >= 72 && forward.abs() > cross * 1.3;
         final nextDelta = armed ? directionDelta : 0;
         if (_volumeSwipeDelta != nextDelta) {
           setState(() => _volumeSwipeDelta = nextDelta);
@@ -1078,9 +1123,12 @@ class _CbzReaderState extends State<CbzReader>
     if (_readerTouches.length >= 2) {
       final points = _readerTouches.values.take(2).toList();
       state.updatePinch(points[0], points[1]);
-    } else if (_zoomScrollLocked && _readerTouches.length == 1 &&
-        !_edgeTurnConsumed && !_edgePageTurnPending) {
-      if (!_gestureHadMultitouch && _tryBoundaryPageTurn(state, event.position)) {
+    } else if (_zoomScrollLocked &&
+        _readerTouches.length == 1 &&
+        !_edgeTurnConsumed &&
+        !_edgePageTurnPending) {
+      if (!_gestureHadMultitouch &&
+          _tryBoundaryPageTurn(state, event.position)) {
         return; // Don't also pan the image on the page-turning movement.
       }
       // Pan immediately. Inward drags at an edge remain normal image pans.
@@ -1107,8 +1155,7 @@ class _CbzReaderState extends State<CbzReader>
       _edgeNegativeAtStart = false;
     }
     const swipeDistance = 56.0; // logical pixels
-    if (main.abs() < swipeDistance ||
-        main.abs() < cross.abs() * 1.3) {
+    if (main.abs() < swipeDistance || main.abs() < cross.abs() * 1.3) {
       return false;
     }
 
@@ -1173,9 +1220,13 @@ class _CbzReaderState extends State<CbzReader>
     }
     if (_readerTouches.isNotEmpty) return;
 
-    final volumeDelta = !cancelled && !_gestureHadMultitouch &&
-        !_zoomScrollLocked && !_edgePageTurnPending &&
-        !_volumeSwipePending ? _volumeSwipeDelta : 0;
+    final volumeDelta = !cancelled &&
+            !_gestureHadMultitouch &&
+            !_zoomScrollLocked &&
+            !_edgePageTurnPending &&
+            !_volumeSwipePending
+        ? _volumeSwipeDelta
+        : 0;
     _canSwipeNext = false;
     _canSwipePrevious = false;
     if (_volumeSwipeDelta != 0) {
@@ -1267,15 +1318,16 @@ class _CbzReaderState extends State<CbzReader>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.menu_book_rounded, color: Colors.white,
-                      size: 19),
+                  const Icon(Icons.menu_book_rounded,
+                      color: Colors.white, size: 19),
                   const SizedBox(width: 10),
                   Flexible(
-                    child: Text(message,
+                    child: Text(
+                      message,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white,
-                          fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -1290,13 +1342,69 @@ class _CbzReaderState extends State<CbzReader>
   Widget _zoomablePage(int index, File file) {
     return ReaderPinchZoom(
       key: _zoomPageKeys.putIfAbsent(
-        index, () => GlobalKey<ReaderPinchZoomState>(),
+        index,
+        () => GlobalKey<ReaderPinchZoomState>(),
       ),
       child: Image.file(
         file,
         fit: BoxFit.contain,
         gaplessPlayback: true,
         filterQuality: FilterQuality.high,
+      ),
+    );
+  }
+
+  void _retryPage(int index) {
+    ++_retryGeneration;
+    setState(() => _failedPageLoads.clear());
+    _loadPageFile(index).then((_) {
+      if (!mounted) return;
+      _precacheAround(index);
+      if (_isStreaming) {
+        final connection = context.read<ConnectionManager>();
+        if (connection.status != ConnectionStatus.online) {
+          unawaited(connection.validateStartup());
+        }
+      }
+    }).catchError((Object _) {});
+  }
+
+  Widget _buildPageFailure(int index, ClassifiedError failure) {
+    final message = switch (failure.kind) {
+      AppErrorKind.unreachable =>
+        'Could not reach Jellyfin. This page is not cached',
+      AppErrorKind.connectionTimeout ||
+      AppErrorKind.timeout =>
+        'Page request timed out',
+      AppErrorKind.httpResponse => switch (failure.httpStatus) {
+          401 || 403 => 'Jellyfin denied access to this page',
+          404 => 'Page not found on Jellyfin',
+          _ => 'Jellyfin could not serve this page',
+        },
+      AppErrorKind.storage => 'Could not access page storage',
+      AppErrorKind.invalidData => 'Could not read this CBZ page',
+      AppErrorKind.certificate => 'Could not verify Jellyfin’s certificate',
+      AppErrorKind.network => 'Could not load this page from Jellyfin',
+      _ => 'Could not load this page',
+    };
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white)),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => _retryPage(index),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1313,14 +1421,18 @@ class _CbzReaderState extends State<CbzReader>
         return _zoomablePage(index, local);
       }
     }
+    final failure = _failedPageLoads[index];
+    if (failure != null) return _buildPageFailure(index, failure);
+    final future = _loadPageFile(index);
     return FutureBuilder<File>(
-      future: _loadPageFile(index),
+      key: ObjectKey(future),
+      future: future,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return _zoomablePage(index, snapshot.data!);
         }
         if (snapshot.hasError) {
-          return const Center(child: Text('Error loading page'));
+          return _buildPageFailure(index, classifyError(snapshot.error));
         }
         return const Center(child: CircularProgressIndicator());
       },
@@ -1337,9 +1449,8 @@ class _CbzReaderState extends State<CbzReader>
         reverse: isRtl,
         itemCount: pageNums,
         controller: _pageController,
-        physics: _zoomScrollLocked
-            ? const NeverScrollableScrollPhysics()
-            : null,
+        physics:
+            _zoomScrollLocked ? const NeverScrollableScrollPhysics() : null,
         itemBuilder: (context, index) => _buildPage(index),
         onPageChanged: (index) {
           // Slider/tap navigation away from a magnified page must not leave
@@ -1357,7 +1468,9 @@ class _CbzReaderState extends State<CbzReader>
           // Record navigation before launching speculative page fetches.
           // The displayed page will be copied before its loader completes.
           ReaderPageCache.touch(
-            volumeId: comicId, pageCount: pageNums, currentPage: index,
+            volumeId: comicId,
+            pageCount: pageNums,
+            currentPage: index,
           ).catchError((Object error) {
             logger.w('ReaderPageCache: could not save position: $error');
           });
@@ -1534,8 +1647,8 @@ class _CbzReaderState extends State<CbzReader>
                 alignment: Alignment.center,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     decoration: BoxDecoration(
                       color: scheme.primaryContainer,
                       borderRadius: BorderRadius.circular(20),

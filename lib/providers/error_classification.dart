@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:kurage/providers/download_exceptions.dart';
 
 enum AppErrorKind {
   unreachable,
@@ -40,7 +41,8 @@ ClassifiedError classifyError(Object? error) => switch (error) {
       DioException(error: FileSystemException()) ||
       FileSystemException() =>
         const ClassifiedError(AppErrorKind.storage),
-      DioException(error: FormatException()) || FormatException() =>
+      DioException(error: FormatException()) ||
+      FormatException() =>
         const ClassifiedError(AppErrorKind.invalidData),
       DioException(
         type: DioExceptionType.receiveTimeout || DioExceptionType.sendTimeout,
@@ -51,7 +53,8 @@ ClassifiedError classifyError(Object? error) => switch (error) {
         type: DioExceptionType.badResponse || DioExceptionType.unknown,
       ) ||
       HttpException() ||
-      HandshakeException() =>
+      HandshakeException() ||
+      InterruptedDownload() =>
         const ClassifiedError(AppErrorKind.network),
       DioException(type: DioExceptionType.badCertificate) =>
         const ClassifiedError(AppErrorKind.certificate),

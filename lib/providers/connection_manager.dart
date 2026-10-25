@@ -136,6 +136,17 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// A completed authenticated page fetch confirms recovery without a new probe.
+  void reportConnectionSuccess({required Session session}) {
+    if (_disposed || !identical(session, SessionStore.current) ||
+        _status == ConnectionStatus.online) {
+      return;
+    }
+    ++_failureRevision;
+    _setStatus(ConnectionStatus.online);
+    if (_checking) _recheckRequested = true;
+  }
+
   /// Validate saved credentials (startup, resume, reconnect, manual retry)
   Future<void> validateStartup() async {
     if (_checking) {

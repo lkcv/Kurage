@@ -58,6 +58,7 @@ class CbzStream {
   final Map<String, String> headers;
   final Directory? pageDirectory;
   final CancelToken? cancelToken;
+  final void Function()? onPageFetched;
   late final JellyfinApi _api = JellyfinApi(url);
 
   late Directory _cacheDir;
@@ -74,6 +75,7 @@ class CbzStream {
     required this.headers,
     this.pageDirectory,
     this.cancelToken,
+    this.onPageFetched,
   });
 
   int get pageCount => _pages.length;
@@ -244,6 +246,7 @@ class CbzStream {
     } finally {
       if (await partial.exists()) await partial.delete();
     }
+    onPageFetched?.call();
     return target;
   }
 
