@@ -25,6 +25,7 @@ import 'package:kurage/cache/speculative_cover_prefetcher.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/providers/connection_manager.dart';
+import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/theme_provider.dart';
 
 enum _SeriesAction { downloadRemaining, deleteDownloaded }
@@ -39,7 +40,8 @@ class LibraryScreen extends StatefulWidget {
   State<LibraryScreen> createState() => _LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserver {
+class _LibraryScreenState extends State<LibraryScreen>
+    with WidgetsBindingObserver {
   static const _pageSize = 20;
   static const double _gridTopGap = 12;
 
@@ -59,12 +61,12 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   late Future<(List<Entry>, List<Folder>)> _categoriesFuture;
   late final LibraryCoverPrewarmer _coverPrewarmer = LibraryCoverPrewarmer(
     canSchedule: () => mounted && _inForeground && _lastFolders != null,
-    canWarm: () => mounted && _inForeground &&
+    canWarm: () =>
+        mounted &&
+        _inForeground &&
         (widget.isActive || _coverPrewarmer.resumeWarmWhileInactive) &&
         (ModalRoute.of(context)?.isCurrent ?? true),
-    covers: () => _lastFolders == null
-        ? null
-        : _visibleFolders(_lastFolders!),
+    covers: () => _lastFolders == null ? null : _visibleFolders(_lastFolders!),
     visibleRange: _visibleCoverRange,
     provider: (path) => _libraryCoverProvider(path, context),
     context: () => context,
@@ -72,7 +74,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     catalogSignature: () => _coverSignature,
     onInitialReady: () => setState(() {}),
     onStartupPainted: () {
-      unawaited(DownloadQueue.instance.restoreQueue()
+      unawaited(DownloadQueue.instance
+          .restoreQueue()
           .whenComplete(_scheduleSpeculative));
       _tryPendingSync();
     },
@@ -89,7 +92,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   final ScrollController _allScrollController = ScrollController();
   final ScrollController _downloadedScrollController = ScrollController();
   final ScrollController _readingScrollController = ScrollController();
-  final ScrollController _downloadedReadingScrollController = ScrollController();
+  final ScrollController _downloadedReadingScrollController =
+      ScrollController();
   ScrollController get _libraryScrollController {
     if (_filter.downloadedOnly && _filter.readingOnly) {
       return _downloadedReadingScrollController;
@@ -98,6 +102,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     if (_filter.readingOnly) return _readingScrollController;
     return _allScrollController;
   }
+
   String get _libraryPageKey {
     if (_filter.downloadedOnly && _filter.readingOnly) {
       return 'library-downloaded-reading';
@@ -106,6 +111,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     if (_filter.readingOnly) return 'library-reading';
     return 'library-all';
   }
+
   LibraryFilter _filter = const LibraryFilter();
   Set<String>? _readingIdsCache;
   bool _hadMatchesWhenLeaving = false;
@@ -116,13 +122,16 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     if (oldWidget.isActive && !widget.isActive) {
       _stopSpeculative();
       // An intentionally empty filtered view stays empty across tab changes.
-      _hadMatchesWhenLeaving = _filter.isActive && _lastFolders != null &&
+      _hadMatchesWhenLeaving = _filter.isActive &&
+          _lastFolders != null &&
           _visibleFolders(_lastFolders!).isNotEmpty;
     } else if (!oldWidget.isActive && widget.isActive) {
       // Settings may have changed eligibility; discard cached Reading IDs.
       _readingIdsCache = null;
-      if (_hadMatchesWhenLeaving && _filter.isActive &&
-          _lastFolders != null && _visibleFolders(_lastFolders!).isEmpty) {
+      if (_hadMatchesWhenLeaving &&
+          _filter.isActive &&
+          _lastFolders != null &&
+          _visibleFolders(_lastFolders!).isEmpty) {
         // The last matching volume vanished while Library was offstage.
         _filter = const LibraryFilter();
         _coverSignature = null;
@@ -240,8 +249,11 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
   }
 
   void _tryPendingSync() {
-    if (!_startupSyncPending || !mounted || !_inForeground ||
-        !_coverPrewarmer.initialReady || _activeRefresh != null ||
+    if (!_startupSyncPending ||
+        !mounted ||
+        !_inForeground ||
+        !_coverPrewarmer.initialReady ||
+        _activeRefresh != null ||
         _connectionManager?.status != ConnectionStatus.online) {
       return;
     }
@@ -251,8 +263,11 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
 
   // Only revalidate on returning to Library; never poll while it is idle.
   void _refreshOnLibraryReturnIfStale() {
-    if (!mounted || !widget.isActive || !_inForeground ||
-        !_coverPrewarmer.initialReady || _activeRefresh != null ||
+    if (!mounted ||
+        !widget.isActive ||
+        !_inForeground ||
+        !_coverPrewarmer.initialReady ||
+        _activeRefresh != null ||
         _connectionManager?.status != ConnectionStatus.online) {
       return;
     }
@@ -341,12 +356,17 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
 
   void _stopSpeculative() => SpeculativeCoverPrefetcher.instance.stop(this);
 
-  bool get _mayPrefetchLibrary => mounted && _inForeground &&
-      widget.isActive && _coverPrewarmer.initialReady && _lastFolders != null &&
+  bool get _mayPrefetchLibrary =>
+      mounted &&
+      _inForeground &&
+      widget.isActive &&
+      _coverPrewarmer.initialReady &&
+      _lastFolders != null &&
       _connectionManager?.status == ConnectionStatus.online &&
       (ModalRoute.of(context)?.isCurrent ?? false);
 
-  bool get _libraryPrefetchBusy => _coverPrewarmer.isBusy ||
+  bool get _libraryPrefetchBusy =>
+      _coverPrewarmer.isBusy ||
       _activeRefresh != null ||
       (_libraryScrollController.hasClients &&
           _libraryScrollController.position.isScrollingNotifier.value);
@@ -371,13 +391,15 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     if (all == null || isar == null) return const [];
     final folders = _visibleFolders(all);
     final range = _visibleCoverRange(folders.length);
-    final series = folders.skip(range.first)
+    final series = folders
+        .skip(range.first)
         .take(math.min(_maxSpeculativeSeries, range.end - range.first))
         .toList();
     if (series.isEmpty) return const [];
     final ids = <String>{for (final folder in series) ...folder.bookIds};
     if (ids.isEmpty) return const [];
-    final entries = await isar.entrys.filter()
+    final entries = await isar.entrys
+        .filter()
         .anyOf(ids.toList(), (q, String id) => q.idEqualTo(id))
         .findAll();
     final byId = {
@@ -389,8 +411,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     final seen = <String>{};
     // One volume per visible series per rotation. Continue without a stage
     // boundary until all their eligible covers are on disk.
-    final longest = series.fold<int>(0,
-        (maxCount, folder) => math.max(maxCount, folder.bookIds.length));
+    final longest = series.fold<int>(
+        0, (maxCount, folder) => math.max(maxCount, folder.bookIds.length));
     for (var index = 0; index < longest; index++) {
       for (final folder in series) {
         if (index >= folder.bookIds.length) continue;
@@ -421,8 +443,10 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
       final width = math.max(1.0, MediaQuery.sizeOf(context).width - 16);
       final rowHeight = ((width - 6) / 2) / 0.63 + 6;
       final gridTop = _headerHeight(context) + _gridTopGap;
-      final rows = math.max(1,
-          ((MediaQuery.sizeOf(context).height - gridTop) / rowHeight).ceil() + 1);
+      final rows = math.max(
+          1,
+          ((MediaQuery.sizeOf(context).height - gridTop) / rowHeight).ceil() +
+              1);
       return (first: 0, end: math.min(count, math.max(10, rows * 2)));
     }
     final viewport = _libraryScrollController.position.viewportDimension;
@@ -432,8 +456,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     final rowHeight = tileWidth / 0.63 + 6;
     final gridTop = _headerHeight(context) + _gridTopGap;
     final firstRow = math.max(0, ((offset - gridTop) / rowHeight).floor() - 1);
-    final lastRow = math.max(firstRow + 1,
-        ((offset + viewport - gridTop) / rowHeight).ceil() + 1);
+    final lastRow = math.max(
+        firstRow + 1, ((offset + viewport - gridTop) / rowHeight).ceil() + 1);
     return (
       first: math.min(count, firstRow * 2),
       end: math.min(count, lastRow * 2),
@@ -442,12 +466,14 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
 
   void _onFoldersLoaded(List<Folder> folders) {
     // Don't prewarm again on progress-notifier rebuilds or tab switches.
-    final signature = folders.map((f) => '${f.id}\u0000${f.image}').join('\u0001');
+    final signature =
+        folders.map((f) => '${f.id}\u0000${f.image}').join('\u0001');
     if (signature == _coverSignature) return;
     _readingIdsCache = null;
     _coverSignature = signature;
     _scheduleSpeculative();
-    _coverPrewarmer.catalogChanged(folders.map((folder) => folder.image).toSet());
+    _coverPrewarmer
+        .catalogChanged(folders.map((folder) => folder.image).toSet());
     _scheduleCoverWarming();
   }
 
@@ -463,22 +489,20 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     }
   }
 
-  String _friendlyError(String error) {
-    final e = error.toLowerCase();
-    if (e.contains("socketexception") ||
-        e.contains("connection") ||
-        e.contains("timed out") ||
-        e.contains("timeout") ||
-        e.contains("host lookup")) {
-      return AppLocalizations.of(context)?.serverNotFound ??
-          "Could not reach the server. Please check your connection and try again.";
-    }
-    if (e.contains("401") || e.contains("unauthorized")) {
-      return AppLocalizations.of(context)?.invalidCredentials ??
-          "Your session has expired. Please log in again.";
-    }
-    return "Couldn't refresh the library. Please try again.";
-  }
+  String _friendlyError(Object? error) => switch (classifyError(error)) {
+        ClassifiedError(
+          kind: AppErrorKind.unreachable ||
+              AppErrorKind.connectionTimeout ||
+              AppErrorKind.timeout ||
+              AppErrorKind.network,
+        ) =>
+          AppLocalizations.of(context)?.serverNotFound ??
+              "Could not reach the server. Please check your connection and try again.",
+        ClassifiedError(kind: AppErrorKind.httpResponse, httpStatus: 401) =>
+          AppLocalizations.of(context)?.invalidCredentials ??
+              "Your session has expired. Please log in again.",
+        _ => "Couldn't refresh the library. Please try again.",
+      };
 
   void _onConnectionChanged() {
     final status = _connectionManager!.status;
@@ -525,9 +549,12 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     final entries = (await seriesEntries()).where(isVolume).toList();
     if (!mounted) return;
     final queuedIds = queue.jobs.map((job) => job.id).toSet();
-    final missing = entries.where((entry) =>
-        isSupportedEntry(entry) && !entry.downloaded &&
-        !queuedIds.contains(entry.id)).toList();
+    final missing = entries
+        .where((entry) =>
+            isSupportedEntry(entry) &&
+            !entry.downloaded &&
+            !queuedIds.contains(entry.id))
+        .toList();
     final downloaded = entries.where((entry) => entry.downloaded).toList();
     if (missing.isEmpty && downloaded.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -570,7 +597,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
       final knownJobs = queue.jobs.map((job) => job.id).toSet();
       var added = 0;
       for (final entry in latest.where(isVolume)) {
-        if (entry.downloaded || !isSupportedEntry(entry) ||
+        if (entry.downloaded ||
+            !isSupportedEntry(entry) ||
             !knownJobs.add(entry.id)) {
           continue;
         }
@@ -587,23 +615,24 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     }
 
     final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete downloaded volumes?'),
-        content: Text('Remove local copies of all downloaded volumes in '
-            '"${folder.name}"? Reading progress and cached pages will be kept.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete downloaded volumes?'),
+            content: Text('Remove local copies of all downloaded volumes in '
+                '"${folder.name}"? Reading progress and cached pages will be kept.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
     if (!confirmed || !mounted) return;
 
     // Re-read Isar after confirmation. Only completed local downloads are
@@ -612,8 +641,8 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     final inQueue = queue.jobs.map((job) => job.id).toSet();
     var removed = 0;
     var failed = 0;
-    for (final entry in latest.where(
-        (item) => isVolume(item) && item.downloaded)) {
+    for (final entry
+        in latest.where((item) => isVolume(item) && item.downloaded)) {
       if (inQueue.contains(entry.id)) {
         failed++;
         continue;
@@ -631,7 +660,9 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     if (removed > 0) {
       _readingIdsCache = null;
     }
-    if (removed > 0 && _filter.isActive && _lastFolders != null &&
+    if (removed > 0 &&
+        _filter.isActive &&
+        _lastFolders != null &&
         _visibleFolders(_lastFolders!).isEmpty) {
       _selectFilter(const LibraryFilter());
     } else if (removed > 0) {
@@ -681,105 +712,107 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
               ),
             ),
           ),
-        if (folders.isNotEmpty) SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.63,
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 6,
-            ),
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final folder = folders[index];
-                return ValueListenableBuilder<int>(
-                  valueListenable: _progressRevision,
-                  builder: (context, _, __) => SeriesCard(
-                    folder: folder,
-                    onLongPress: () => _showSeriesActions(folder),
-                    matchingCount:
-                        _filter.matchingVolumeCount(folder, matchingIds),
-                    filter: _filter,
-                    onTap: () async {
-                      _stopSpeculative();
-                      final collectionRoute = PageRouteBuilder<void>(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            CollectionScreen(
-                              folderId: folder.id,
-                              name: folder.name,
-                              image: folder.image,
-                              bookIds: folder.bookIds,
-                              downloadedOnly: _filter.downloadedOnly,
-                              readingOnly: _filter.readingOnly,
-                            ),
-                        transitionDuration: const Duration(milliseconds: 280),
-                        reverseTransitionDuration:
-                            const Duration(milliseconds: 240),
-                        transitionsBuilder: (context, animation, _, child) {
-                          final progress = animation.drive(
-                            CurveTween(curve: Curves.easeOutCubic),
-                          );
-                          return FadeTransition(
-                            opacity: progress,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.018, 0),
-                                end: Offset.zero,
-                              ).animate(progress),
-                              child: child,
-                            ),
-                          );
-                        },
-                      );
-                      await Navigator.of(context).push<void>(collectionRoute);
-                      // Navigator.push completes when pop begins. Wait for the
-                      // reverse animation to finish before revalidating covers.
-                      await collectionRoute.completed;
-                      _scheduleSpeculative();
-                      // Read saved progress from Isar, not from the server.
-                      if (mounted) {
-                        // Returning from a filtered Collection may have
-                        // changed Reading progress or download eligibility.
-                        _readingIdsCache = null;
-                        final showAll = _filter.isActive &&
-                            _lastFolders != null &&
-                            _visibleFolders(_lastFolders!).isEmpty;
-                        setState(() {
-                          if (showAll) _filter = const LibraryFilter();
-                        });
-                        _progressRevision.value++;
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && widget.isActive) {
-                            // Re-resolve visible covers after reader decoding.
-                            _coverPrewarmer.revalidate();
-                            _scheduleCoverWarming();
-                            _refreshOnLibraryReturnIfStale();
-                          }
-                        });
-                        if (showAll) {
-                          // Use the existing All scroll controller and warm
-                          // its visible covers, exactly as with a manual toggle.
-                          _coverSignature = null;
-                          _scheduleCoverWarming();
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'No matching volumes remaining — showing all series',
+        if (folders.isNotEmpty)
+          SliverPadding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.63,
+                crossAxisSpacing: 6,
+                mainAxisSpacing: 6,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, index) {
+                  final folder = folders[index];
+                  return ValueListenableBuilder<int>(
+                    valueListenable: _progressRevision,
+                    builder: (context, _, __) => SeriesCard(
+                      folder: folder,
+                      onLongPress: () => _showSeriesActions(folder),
+                      matchingCount:
+                          _filter.matchingVolumeCount(folder, matchingIds),
+                      filter: _filter,
+                      onTap: () async {
+                        _stopSpeculative();
+                        final collectionRoute = PageRouteBuilder<void>(
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  CollectionScreen(
+                            folderId: folder.id,
+                            name: folder.name,
+                            image: folder.image,
+                            bookIds: folder.bookIds,
+                            downloadedOnly: _filter.downloadedOnly,
+                            readingOnly: _filter.readingOnly,
+                          ),
+                          transitionDuration: const Duration(milliseconds: 280),
+                          reverseTransitionDuration:
+                              const Duration(milliseconds: 240),
+                          transitionsBuilder: (context, animation, _, child) {
+                            final progress = animation.drive(
+                              CurveTween(curve: Curves.easeOutCubic),
+                            );
+                            return FadeTransition(
+                              opacity: progress,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.018, 0),
+                                  end: Offset.zero,
+                                ).animate(progress),
+                                child: child,
                               ),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
+                            );
+                          },
+                        );
+                        await Navigator.of(context).push<void>(collectionRoute);
+                        // Navigator.push completes when pop begins. Wait for the
+                        // reverse animation to finish before revalidating covers.
+                        await collectionRoute.completed;
+                        _scheduleSpeculative();
+                        // Read saved progress from Isar, not from the server.
+                        if (mounted) {
+                          // Returning from a filtered Collection may have
+                          // changed Reading progress or download eligibility.
+                          _readingIdsCache = null;
+                          final showAll = _filter.isActive &&
+                              _lastFolders != null &&
+                              _visibleFolders(_lastFolders!).isEmpty;
+                          setState(() {
+                            if (showAll) _filter = const LibraryFilter();
+                          });
+                          _progressRevision.value++;
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted && widget.isActive) {
+                              // Re-resolve visible covers after reader decoding.
+                              _coverPrewarmer.revalidate();
+                              _scheduleCoverWarming();
+                              _refreshOnLibraryReturnIfStale();
+                            }
+                          });
+                          if (showAll) {
+                            // Use the existing All scroll controller and warm
+                            // its visible covers, exactly as with a manual toggle.
+                            _coverSignature = null;
+                            _scheduleCoverWarming();
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'No matching volumes remaining — showing all series',
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         }
-                      }
-                    },
-                  ),
-                );
-              },
-              childCount: folders.length,
+                      },
+                    ),
+                  );
+                },
+                childCount: folders.length,
+              ),
             ),
           ),
-        ),
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
     );
@@ -812,7 +845,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
     super.dispose();
   }
 
-  void _showErrorModal(BuildContext context, String error) {
+  void _showErrorModal(BuildContext context, Object? error) {
     if (!mounted || _errorModalShowing) return;
     _errorModalShowing = true;
 
@@ -872,156 +905,161 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
         topInset: topInset,
         alignment: Alignment.center,
         children: [
-                // On notched devices, pin title near the top (under the notch).
-                // On flat status bars / tablets, keep equal top & bottom padding.
-                Align(
-                  alignment: MediaQuery.of(context).padding.top > 30
-                      ? const Alignment(0, -0.7)
-                      : Alignment.center,
-                  child: Text(
-                    AppLocalizations.of(context)?.library ?? "Library",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: headerForeground,
-                    ),
+          // On notched devices, pin title near the top (under the notch).
+          // On flat status bars / tablets, keep equal top & bottom padding.
+          Align(
+            alignment: MediaQuery.of(context).padding.top > 30
+                ? const Alignment(0, -0.7)
+                : Alignment.center,
+            child: Text(
+              AppLocalizations.of(context)?.library ?? "Library",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: headerForeground,
+              ),
+            ),
+          ),
+          // A single tap filters to series with complete local volumes.
+          Positioned(
+            left: 4,
+            child: IconButton(
+              icon: Icon(
+                Icons.download_for_offline_outlined,
+                color: _filter.downloadedOnly
+                    ? Theme.of(context).colorScheme.primary
+                    : headerForeground,
+              ),
+              tooltip: _filter.downloadedOnly
+                  ? 'Disable Downloaded filter'
+                  : 'Show downloaded series',
+              onPressed: () {
+                _selectFilter(
+                    _filter.copyWith(downloadedOnly: !_filter.downloadedOnly));
+              },
+            ),
+          ),
+          // Only this header control observes the download queue;
+          // progress ticks never rebuild Library cards or cover images.
+          Positioned(
+            left: 52,
+            child: ValueListenableBuilder<int>(
+              valueListenable: DownloadQueue.instance.headerChanges,
+              builder: (context, _, __) {
+                final manager = DownloadQueue.instance;
+                final pending = manager.pendingCount;
+                final failed = manager.failedCount;
+                if (pending == 0 && failed == 0) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  tooltip: 'Download queue',
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const DownloadQueueSheet(),
                   ),
-                ),
-                // A single tap filters to series with complete local volumes.
-                Positioned(
-                  left: 4,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.download_for_offline_outlined,
-                      color: _filter.downloadedOnly
-                          ? Theme.of(context).colorScheme.primary
-                          : headerForeground,
-                    ),
-                    tooltip: _filter.downloadedOnly
-                        ? 'Disable Downloaded filter'
-                        : 'Show downloaded series',
-                    onPressed: () {
-                      _selectFilter(_filter.copyWith(
-                          downloadedOnly: !_filter.downloadedOnly));
-                    },
-                  ),
-                ),
-                // Only this header control observes the download queue;
-                // progress ticks never rebuild Library cards or cover images.
-                Positioned(
-                  left: 52,
-                  child: ValueListenableBuilder<int>(
-                    valueListenable: DownloadQueue.instance.headerChanges,
-                    builder: (context, _, __) {
-                      final manager = DownloadQueue.instance;
-                      final pending = manager.pendingCount;
-                      final failed = manager.failedCount;
-                      if (pending == 0 && failed == 0) {
-                        return const SizedBox.shrink();
-                      }
-                      return IconButton(
-                        tooltip: 'Download queue',
-                        onPressed: () => showModalBottomSheet<void>(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => const DownloadQueueSheet(),
-                        ),
-                        icon: SizedBox(
-                          width: 27,
-                          height: 27,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              Center(child: Icon(
-                                pending == 0 ? Icons.error_outline :
-                                    Icons.downloading_rounded,
-                                color: pending == 0 ? Colors.redAccent :
-                                    headerForeground,
-                                size: 23,
-                              )),
-                              if (pending > 0)
-                                Positioned(
-                                  bottom: -4,
-                                  right: -5,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 4, vertical: 1),
-                                    decoration: BoxDecoration(
-                                      color: accent,
-                                      borderRadius: const BorderRadius.all(
-                                          Radius.circular(10)),
-                                    ),
-                                    child: Text(pending > 99 ? '99+' : '$pending',
-                                        style: const TextStyle(
-                                            color: Colors.white, fontSize: 9,
-                                            fontWeight: FontWeight.bold)),
-                                  ),
-                                ),
-                              if (failed > 0 && pending > 0)
-                                const Positioned(
-                                  top: -2,
-                                  right: -3,
-                                  child: Icon(Icons.circle,
-                                      size: 8, color: Colors.redAccent),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // Keep transient connection status inside the right filter.
-                Positioned(
-                  right: 52,
-                  child: Consumer<ConnectionManager>(
-                    builder: (context, connectionManager, _) {
-                      final status = connectionManager.status;
-
-                      if (status == ConnectionStatus.offline) {
-                        return IconButton(
-                          icon: Icon(Icons.cloud_off, color: headerForeground),
-                          tooltip: 'Offline - tap to retry',
-                          onPressed: () {
-                            connectionManager.retry();
-                          },
-                        );
-                      } else if (status == ConnectionStatus.validating && _wasOffline) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: headerForeground,
+                  icon: SizedBox(
+                    width: 27,
+                    height: 27,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Center(
+                            child: Icon(
+                          pending == 0
+                              ? Icons.error_outline
+                              : Icons.downloading_rounded,
+                          color: pending == 0
+                              ? Colors.redAccent
+                              : headerForeground,
+                          size: 23,
+                        )),
+                        if (pending > 0)
+                          Positioned(
+                            bottom: -4,
+                            right: -5,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: accent,
+                                borderRadius:
+                                    const BorderRadius.all(Radius.circular(10)),
+                              ),
+                              child: Text(pending > 99 ? '99+' : '$pending',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold)),
                             ),
                           ),
-                        );
-                      }
-
-                      return const SizedBox.shrink();
-                    },
-                  ),
-                ),
-                // Symmetric with Downloaded on the far left. Filters combine.
-                Positioned(
-                  right: 4,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.chrome_reader_mode_outlined,
-                      color: _filter.readingOnly
-                          ? Theme.of(context).colorScheme.primary
-                          : headerForeground,
+                        if (failed > 0 && pending > 0)
+                          const Positioned(
+                            top: -2,
+                            right: -3,
+                            child: Icon(Icons.circle,
+                                size: 8, color: Colors.redAccent),
+                          ),
+                      ],
                     ),
-                    tooltip: _filter.readingOnly
-                        ? 'Disable Continue Reading filter'
-                        : 'Show series being read',
-                    onPressed: () => _selectFilter(_filter.copyWith(
-                        readingOnly: !_filter.readingOnly)),
                   ),
-                ),
-          ],
+                );
+              },
+            ),
+          ),
+          // Keep transient connection status inside the right filter.
+          Positioned(
+            right: 52,
+            child: Consumer<ConnectionManager>(
+              builder: (context, connectionManager, _) {
+                final status = connectionManager.status;
+
+                if (status == ConnectionStatus.offline) {
+                  return IconButton(
+                    icon: Icon(Icons.cloud_off, color: headerForeground),
+                    tooltip: 'Offline - tap to retry',
+                    onPressed: () {
+                      connectionManager.retry();
+                    },
+                  );
+                } else if (status == ConnectionStatus.validating &&
+                    _wasOffline) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: headerForeground,
+                      ),
+                    ),
+                  );
+                }
+
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          // Symmetric with Downloaded on the far left. Filters combine.
+          Positioned(
+            right: 4,
+            child: IconButton(
+              icon: Icon(
+                Icons.chrome_reader_mode_outlined,
+                color: _filter.readingOnly
+                    ? Theme.of(context).colorScheme.primary
+                    : headerForeground,
+              ),
+              tooltip: _filter.readingOnly
+                  ? 'Disable Continue Reading filter'
+                  : 'Show series being read',
+              onPressed: () => _selectFilter(
+                  _filter.copyWith(readingOnly: !_filter.readingOnly)),
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         // Keep the spinner below the translucent header, without moving the grid.
@@ -1052,7 +1090,7 @@ class _LibraryScreenState extends State<LibraryScreen> with WidgetsBindingObserv
 
             if (snapshot.hasError) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                _showErrorModal(context, snapshot.error.toString());
+                _showErrorModal(context, snapshot.error);
               });
               // fall back to the last grid, or whatever is cached in Isar
               final cached = _lastFolders ??
@@ -1082,9 +1120,13 @@ class SeriesCard extends StatefulWidget {
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
 
-  const SeriesCard({super.key, required this.folder, required this.onTap,
+  const SeriesCard(
+      {super.key,
+      required this.folder,
+      required this.onTap,
       this.onLongPress,
-      this.matchingCount, this.filter = const LibraryFilter()});
+      this.matchingCount,
+      this.filter = const LibraryFilter()});
 
   @override
   State<SeriesCard> createState() => _SeriesCardState();
@@ -1232,8 +1274,8 @@ ImageProvider? _libraryCoverProvider(String path, BuildContext context) {
   if (path.isEmpty || path.toLowerCase() == 'asset') return null;
   // Decode near displayed size rather than keeping huge source bitmaps in RAM.
   final tileWidth = (MediaQuery.sizeOf(context).width - 22) / 2;
-  final pixelWidth = math.max(1,
-      (tileWidth * MediaQuery.devicePixelRatioOf(context)).ceil());
+  final pixelWidth =
+      math.max(1, (tileWidth * MediaQuery.devicePixelRatioOf(context)).ceil());
   return coverImageProvider(path, pixelWidth: pixelWidth);
 }
 
