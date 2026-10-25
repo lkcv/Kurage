@@ -5,14 +5,23 @@ import 'package:isar/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/providers/delete_comic.dart';
+import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/supported_formats.dart';
+import 'package:kurage/variables.dart';
+
+String _downloadedFailureMessage(Object? error, String fallback) =>
+    switch (classifyError(error).kind) {
+      AppErrorKind.storage => 'Could not access downloaded files',
+      _ => fallback,
+    };
 
 /// Storage management, not a second reading/browsing interface.
 class DownloadedVolumesScreen extends StatefulWidget {
   const DownloadedVolumesScreen({super.key});
 
   @override
-  State<DownloadedVolumesScreen> createState() => _DownloadedVolumesScreenState();
+  State<DownloadedVolumesScreen> createState() =>
+      _DownloadedVolumesScreenState();
 }
 
 class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
@@ -37,24 +46,35 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
   }
 
   Future<List<({Entry entry, String series, int? bytes})>> _load() async {
-    final isar = Isar.getInstance();
-    if (isar == null) return [];
-    final entries = (await isar.entrys.where().filter()
-            .downloadedEqualTo(true).findAll())
-        .where(isSupportedEntry).toList()
-      ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
-    final folders = await isar.folders.where().findAll();
-    final seriesNames = <String, String>{
-      for (final folder in folders) folder.id: folder.name,
-    };
-    return Future.wait([
-      for (final entry in entries)
-        (() async => (
-          entry: entry,
-          series: seriesNames[entry.parentId] ?? '',
-          bytes: await _directorySize(entry.folderPath),
-        ))(),
-    ]);
+    try {
+      final isar = Isar.getInstance();
+      if (isar == null) return [];
+      final entries = (await isar.entrys
+              .where()
+              .filter()
+              .downloadedEqualTo(true)
+              .findAll())
+          .where(isSupportedEntry)
+          .toList()
+        ..sort(
+            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      final folders = await isar.folders.where().findAll();
+      final seriesNames = <String, String>{
+        for (final folder in folders) folder.id: folder.name,
+      };
+      return await Future.wait([
+        for (final entry in entries)
+          (() async => (
+                entry: entry,
+                series: seriesNames[entry.parentId] ?? '',
+                bytes: await _directorySize(entry.folderPath),
+              ))(),
+      ]);
+    } catch (error, stackTrace) {
+      logger.e(
+          'DownloadedVolumesScreen: could not list downloads: $error\n$stackTrace');
+      rethrow;
+    }
   }
 
   String _formatSize(int? bytes) {
@@ -82,16 +102,20 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
               ),
             ],
           ),
-        ) ?? false;
+        ) ??
+        false;
     if (!confirmed || !mounted) return;
     setState(() => _deletingId = entry.id);
     try {
       await removeDownloadedVolume(entry.id);
       if (mounted) setState(() => _volumes = _load());
     } catch (error) {
+      logger.w('DownloadedVolumesScreen: could not remove download: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not remove download: $error')),
+          SnackBar(
+              content: Text(_downloadedFailureMessage(
+                  error, 'Could not remove download'))),
         );
       }
     } finally {
@@ -107,7 +131,9 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
         future: _volumes,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Could not list downloads: ${snapshot.error}'));
+            return Center(
+                child: Text(_downloadedFailureMessage(
+                    snapshot.error, 'Could not list downloads')));
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -118,18 +144,21 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
           }
           return ListView.separated(
             itemCount: volumes.length,
-            separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+            separatorBuilder: (_, __) =>
+                const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final volume = volumes[index];
               return ListTile(
-                title: Text(volume.entry.title, maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                title: Text(volume.entry.title,
+                    maxLines: 2, overflow: TextOverflow.ellipsis),
                 subtitle: Text([
                   if (volume.series.isNotEmpty) volume.series,
                   _formatSize(volume.bytes),
                 ].join(' • ')),
                 trailing: _deletingId == volume.entry.id
-                    ? const SizedBox(width: 24, height: 24,
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : IconButton(
                         tooltip: 'Remove download',

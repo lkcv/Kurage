@@ -3,6 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:kurage/screens/downloaded_volumes_screen.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/cache/cover_cache.dart';
+import 'package:kurage/providers/error_classification.dart';
+import 'package:kurage/variables.dart';
+
+String _cacheFailureMessage(Object error, String fallback) =>
+    switch (classifyError(error).kind) {
+      AppErrorKind.storage => '$fallback (storage access failed)',
+      _ => fallback,
+    };
 
 class ReaderCacheSettings extends StatefulWidget {
   const ReaderCacheSettings({super.key});
@@ -39,10 +47,11 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
         _error = null;
       });
     } catch (error) {
+      logger.w('ReaderCacheSettings: could not read cache usage: $error');
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Could not read cache usage: $error';
+        _error = _cacheFailureMessage(error, 'Could not read cache usage');
       });
     }
   }
@@ -99,7 +108,8 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       await _refresh();
       _notify('Reader page cache cleared');
     } catch (error) {
-      _notify('Could not clear reader cache: $error');
+      logger.w('ReaderCacheSettings: could not clear reader cache: $error');
+      _notify(_cacheFailureMessage(error, 'Could not clear reader cache'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -121,7 +131,8 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       await _refresh();
       _notify('Cover cache cleared');
     } catch (error) {
-      _notify('Could not clear cover cache: $error');
+      logger.w('ReaderCacheSettings: could not clear cover cache: $error');
+      _notify(_cacheFailureMessage(error, 'Could not clear cover cache'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -140,7 +151,10 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       await _refresh();
       _notify('Reader cache limit updated');
     } catch (error) {
-      _notify('Could not update reader cache limit: $error');
+      logger.w(
+          'ReaderCacheSettings: could not update reader cache limit: $error');
+      _notify(
+          _cacheFailureMessage(error, 'Could not update reader cache limit'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -213,7 +227,8 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                                 Text('${_displayMb(_usageBytes)} MB used of'),
                                 OutlinedButton.icon(
                                   onPressed: _busy ? null : _editLimit,
-                                  icon: const Icon(Icons.edit_outlined, size: 16),
+                                  icon:
+                                      const Icon(Icons.edit_outlined, size: 16),
                                   label: Text('$_limitMb MB'),
                                   style: OutlinedButton.styleFrom(
                                     visualDensity: VisualDensity.compact,
@@ -396,7 +411,9 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
                         controller: _controller,
                         focusNode: _numberFocus,
                         keyboardType: TextInputType.number,
-                        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         textAlign: TextAlign.center,
                         decoration: const InputDecoration(
                           isDense: true,
