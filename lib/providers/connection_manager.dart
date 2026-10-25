@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
-
-import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/jellyfin_api.dart';
 import 'package:kurage/providers/session_store.dart';
 import 'package:kurage/providers/login.dart';
@@ -117,38 +115,23 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
   void reportConnectionFailure(Object error, {required Session session}) {
     if (_disposed || !identical(session, SessionStore.current)) return;
 
-    if (error is SocketException ||
-        error is DioException &&
-            (error.type == DioExceptionType.connectionError ||
-                error.type == DioExceptionType.connectionTimeout ||
-                error.error is SocketException)) {
+    final failure = classifyError(error);
+    if (failure.kind == AppErrorKind.unreachable ||
+        failure.kind == AppErrorKind.connectionTimeout) {
       ++_failureRevision;
       _setStatus(ConnectionStatus.offline);
       if (_checking) _recheckRequested = true;
       return;
     }
 
-    if (error is DioException) {
-      final status = error.response?.statusCode;
-      if (status != null) {
-        if (status == 401 || status == 403 || status == 408 ||
-            status == 429 || status >= 500) {
-          unawaited(validateStartup());
-        }
-        return;
-      }
-      if (error.error is FileSystemException ||
-          error.error is FormatException) {
-        return;
-      }
-      if (error.type == DioExceptionType.receiveTimeout ||
-          error.type == DioExceptionType.sendTimeout ||
-          error.type == DioExceptionType.badResponse ||
-          error.type == DioExceptionType.unknown) {
+    if (failure.kind == AppErrorKind.httpResponse) {
+      final status = failure.httpStatus!;
+      if (status == 401 || status == 403 || status == 408 ||
+          status == 429 || status >= 500) {
         unawaited(validateStartup());
       }
-    } else if (error is TimeoutException || error is HttpException ||
-        error is HandshakeException) {
+    } else if (failure.kind == AppErrorKind.timeout ||
+        failure.kind == AppErrorKind.network) {
       unawaited(validateStartup());
     }
   }

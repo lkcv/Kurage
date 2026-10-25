@@ -16,6 +16,7 @@ import 'dart:collection';
 import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/providers/connection_manager.dart';
+import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/cbz_stream.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/widgets/reader_pinch_zoom.dart';
@@ -333,7 +334,7 @@ class _CbzReaderState extends State<CbzReader>
           ? 'Server is offline and this page is not cached'
           : _isStreaming && connection.status == ConnectionStatus.authFailed
               ? 'Jellyfin authentication failed'
-              : e is FormatException
+              : classifyError(e).kind == AppErrorKind.invalidData
                   ? 'Could not read this volume as a CBZ'
                   : _isStreaming
                       ? 'Could not load this volume from Jellyfin'
