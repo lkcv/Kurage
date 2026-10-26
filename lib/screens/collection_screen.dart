@@ -23,7 +23,7 @@ import 'package:kurage/cache/speculative_cover_prefetcher.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:kurage/providers/server_progress_revision.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
-import 'package:kurage/screens/readingScreens/cbz_reader.dart';
+import 'package:kurage/screens/cbz_reader.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
 import 'package:kurage/widgets/volume_actions.dart';
 import 'package:provider/provider.dart';

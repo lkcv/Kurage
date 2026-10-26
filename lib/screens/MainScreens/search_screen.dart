@@ -8,7 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:isar/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/supported_formats.dart';
-import 'package:kurage/screens/readingScreens/cbz_reader.dart';
+import 'package:kurage/screens/cbz_reader.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
