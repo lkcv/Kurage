@@ -114,7 +114,6 @@ flutter:
   assets:
     - assets/images/Logo.png
     - assets/images/NoCoverArt.png
-    - assets/images/ProfilePicture.png
 
   generate: true
   # assets:
