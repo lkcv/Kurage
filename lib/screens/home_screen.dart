@@ -9,9 +9,9 @@ import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:provider/provider.dart';
 
 // Screens imports
-import 'package:kurage/screens/MainScreens/library_screen.dart';
-import 'package:kurage/screens/MainScreens/settings_screen.dart';
-import 'package:kurage/screens/MainScreens/search_screen.dart';
+import 'package:kurage/screens/library_screen.dart';
+import 'package:kurage/screens/settings_screen.dart';
+import 'package:kurage/screens/search_screen.dart';
 import 'package:kurage/screens/login_screen.dart';
 import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/variables.dart';
