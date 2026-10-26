@@ -6,9 +6,14 @@ import 'package:flutter/material.dart';
 /// *above* PageView, so a second finger can be detected even if the first
 /// finger is already dragging a different page.
 class ReaderPinchZoom extends StatefulWidget {
-  const ReaderPinchZoom({super.key, required this.child});
+  const ReaderPinchZoom({
+    super.key,
+    required this.child,
+    this.scaleNotifier,
+  });
 
   final Widget child;
+  final ValueNotifier<double>? scaleNotifier;
 
   @override
   State<ReaderPinchZoom> createState() => ReaderPinchZoomState();
@@ -44,7 +49,10 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
         : translation <= minTranslation + tolerance;
   }
 
-  void reset() => _transform.value = Matrix4.identity();
+  void reset() {
+    _transform.value = Matrix4.identity();
+    widget.scaleNotifier?.value = 1.0;
+  }
 
   @override
   void dispose() {
@@ -106,6 +114,7 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
     _transform.value = Matrix4.identity()
       ..translateByDouble(dx, dy, 0.0, 1.0)
       ..scaleByDouble(scale, scale, scale, 1.0);
+    widget.scaleNotifier?.value = scale;
   }
 
   @override

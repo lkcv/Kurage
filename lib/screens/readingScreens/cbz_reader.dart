@@ -19,7 +19,9 @@ import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/cbz_stream.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
+import 'package:kurage/cache/reader_prefilter_cache.dart';
 import 'package:kurage/widgets/reader_pinch_zoom.dart';
+import 'package:kurage/widgets/reader_page_image.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
 
 class CbzReader extends StatefulWidget {
@@ -89,6 +91,12 @@ class _CbzReaderState extends State<CbzReader>
   // hit a neighboring page, not the first page's ReaderPinchZoom.
   final Map<int, Offset> _readerTouches = <int, Offset>{};
   final Map<int, GlobalKey<ReaderPinchZoomState>> _zoomPageKeys = {};
+  final Map<int, ValueNotifier<double>> _zoomScales = {};
+  final ReaderPrefilterCache _prefilter = ReaderPrefilterCache();
+  bool _prefilterHasNavigated = false;
+  int _prefilterStep = 1;
+  int? _tapLegTarget;
+  bool _pagerScrolling = false;
   final Map<int, GlobalKey> _verticalPageKeys = {};
   int? _firstTouchPage;
   int? _activeZoomPage;
@@ -153,6 +161,10 @@ class _CbzReaderState extends State<CbzReader>
     _volumeSwipeMessageTimer?.cancel();
     _pageController?.dispose();
     _verticalScrollController.dispose();
+    _prefilter.dispose();
+    for (final scale in _zoomScales.values) {
+      scale.dispose();
+    }
     if (widget.restoreSystemUiOnDispose) {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
@@ -428,6 +440,7 @@ class _CbzReaderState extends State<CbzReader>
         if (mounted) {
           _setOpeningState(ReaderOpeningState.ready);
           widget.openingReady!.value = true;
+          _updatePrefilterPause();
         }
       });
     }
@@ -520,6 +533,56 @@ class _CbzReaderState extends State<CbzReader>
         }
       }).catchError((Object _) {});
     }
+    _schedulePrefilterWindow(index);
+  }
+
+  void _schedulePrefilterWindow(int index) {
+    if (!mounted || direction == 'vertical') return;
+    final size = MediaQuery.sizeOf(context);
+    final ratio = MediaQuery.devicePixelRatioOf(context);
+    _prefilter.configure(
+      indices: (_prefilterHasNavigated
+              ? [
+                  index,
+                  index + _prefilterStep,
+                  index - _prefilterStep,
+                  index + 2 * _prefilterStep,
+                  index - 2 * _prefilterStep,
+                  index + 3 * _prefilterStep,
+                ]
+              : [index, index + 1, index - 1, index + 2, index - 2, index + 3])
+          .where((i) => i > 0 && i < pageNums)
+          .toList(),
+      currentIndex: _currentPage,
+      readingStep: _prefilterStep,
+      width: (size.width * ratio).round(),
+      height: (size.height * ratio).round(),
+      load: _loadPageFile,
+    );
+    // Let the current frame and the opening route settle first.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updatePrefilterPause();
+    });
+  }
+
+  void _updatePrefilterPause() {
+    if (!mounted) return;
+    final touches = _readerTouches.isNotEmpty;
+    final opening = widget.openingReady?.value == false;
+    final tapActive = _tapTicker.isActive;
+    // Targeted resizes may run during tap animation, but not drag scrolling.
+    final hardPaused = touches || opening || (_pagerScrolling && !tapActive);
+    _prefilter.setActivity(
+      hardPaused: hardPaused,
+      allowTapFinishDuringTouch: tapActive &&
+          _readerTouches.length == 1 &&
+          !opening &&
+          !_zoomScrollLocked &&
+          !_edgePageTurnPending &&
+          !_volumeSwipePending,
+      tapActive: tapActive,
+      tapTarget: _tapQueue.isNotEmpty ? _tapQueue.first : _tapLegTarget,
+    );
   }
 
   Future<File> _loadPageFile(int index) {
@@ -762,6 +825,7 @@ class _CbzReaderState extends State<CbzReader>
         _switchingToLocal = false;
       });
       _pageCache.clear();
+      _prefilter.clear();
       _precacheAround(_currentPage);
       final stream = _stream;
       _stream = null;
@@ -926,14 +990,17 @@ class _CbzReaderState extends State<CbzReader>
 
     if (_tapTicker.isActive) {
       _tapQueue.add(target);
+      _updatePrefilterPause();
     } else {
       _startLeg(target);
       _lastTick = Duration.zero;
       _tapTicker.start();
+      _updatePrefilterPause();
     }
   }
 
   void _startLeg(int page) {
+    _tapLegTarget = page;
     final c = _pageController!;
     _from = c.position.pixels;
     _to = page * c.position.viewportDimension * c.viewportFraction;
@@ -959,10 +1026,13 @@ class _CbzReaderState extends State<CbzReader>
       c.jumpTo(_to);
       if (_tapQueue.isEmpty) {
         _tapTicker.stop();
+        _tapLegTarget = null;
+        _updatePrefilterPause();
         return;
       }
       final overflow = _t - 1;
       _startLeg(_tapQueue.removeFirst());
+      _updatePrefilterPause();
       _t = overflow.clamp(0.0, 0.99).toDouble();
     }
 
@@ -972,6 +1042,8 @@ class _CbzReaderState extends State<CbzReader>
   void _cancelTapAnimation() {
     if (_tapTicker.isActive) _tapTicker.stop();
     _tapQueue.clear();
+    _tapLegTarget = null;
+    _updatePrefilterPause();
   }
 
   // Suspend page scrolling on the second pointer, including mid-swipe.
@@ -1061,6 +1133,7 @@ class _CbzReaderState extends State<CbzReader>
           (zoom?.atPanBoundary(vertical: vertical, positive: false) ?? false);
     }
     _readerTouches[event.pointer] = event.position;
+    _updatePrefilterPause();
     if (_readerTouches.length == 2) {
       _gestureHadMultitouch = true;
       _canSwipeNext = false;
@@ -1212,6 +1285,7 @@ class _CbzReaderState extends State<CbzReader>
 
   void _readerPointerEnd(int pointer, {bool cancelled = false}) {
     if (_readerTouches.remove(pointer) == null) return;
+    _updatePrefilterPause();
     if (_readerTouches.length >= 2) {
       // A third finger can replace a lifted pointer without scale jumping.
       final points = _readerTouches.values.take(2).toList();
@@ -1340,17 +1414,29 @@ class _CbzReaderState extends State<CbzReader>
   }
 
   Widget _zoomablePage(int index, File file) {
+    final scale = _zoomScales.putIfAbsent(
+      index,
+      () => ValueNotifier<double>(1.0),
+    );
     return ReaderPinchZoom(
       key: _zoomPageKeys.putIfAbsent(
         index,
         () => GlobalKey<ReaderPinchZoomState>(),
       ),
-      child: Image.file(
-        file,
-        fit: BoxFit.contain,
-        gaplessPlayback: true,
-        filterQuality: FilterQuality.high,
-      ),
+      scaleNotifier: scale,
+      child: index == 0
+          ? Image.file(
+              file,
+              fit: BoxFit.contain,
+              gaplessPlayback: true,
+              filterQuality: FilterQuality.high,
+            )
+          : ReaderPageImage(
+              file: file,
+              index: index,
+              cache: _prefilter,
+              zoomScale: scale,
+            ),
     );
   }
 
@@ -1440,9 +1526,16 @@ class _CbzReaderState extends State<CbzReader>
   }
 
   Widget _buildPager(bool isRtl) {
-    return NotificationListener<ScrollStartNotification>(
+    return NotificationListener<ScrollNotification>(
       onNotification: (n) {
-        if (n.dragDetails != null) _cancelTapAnimation();
+        if (n.depth != 0) return false;
+        if (n is ScrollStartNotification) {
+          _pagerScrolling = true;
+          if (n.dragDetails != null) _cancelTapAnimation();
+        } else if (n is ScrollEndNotification) {
+          _pagerScrolling = false;
+        }
+        _updatePrefilterPause();
         return false;
       },
       child: PageView.builder(
@@ -1463,6 +1556,10 @@ class _CbzReaderState extends State<CbzReader>
             _edgePageTurnPending = false;
             // Hold the lock if the boundary-swipe finger is still down.
             _zoomScrollLocked = _readerTouches.isNotEmpty;
+          }
+          if (index != _currentPage) {
+            _prefilterStep = index > _currentPage ? 1 : -1;
+            _prefilterHasNavigated = true;
           }
           setState(() => _currentPage = index);
           // Record navigation before launching speculative page fetches.
