@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
+import 'package:flutter/scheduler.dart';
 
 /// Paints a transformed reader page. Raw pointers are tracked by the reader,
 /// *above* PageView, so a second finger can be detected even if the first
@@ -23,7 +25,11 @@ class ReaderPinchZoom extends StatefulWidget {
 /// No gesture recognizer is involved, so one-finger paging stays immediate.
 class ReaderPinchZoomState extends State<ReaderPinchZoom> {
   static const double _maxScale = 5;
+  static const double _friction = 0.0000135;
   final TransformationController _transform = TransformationController();
+  late final Ticker _inertiaTicker = Ticker(_onInertiaTick);
+  FrictionSimulation? _inertiaX;
+  FrictionSimulation? _inertiaY;
 
   double _startScale = 1;
   double _startDistance = 1;
@@ -50,12 +56,14 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
   }
 
   void reset() {
+    stopInertia();
     _transform.value = Matrix4.identity();
     widget.scaleNotifier?.value = 1.0;
   }
 
   @override
   void dispose() {
+    _inertiaTicker.dispose();
     _transform.dispose();
     super.dispose();
   }
@@ -76,6 +84,7 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
   Offset _toLocal(Offset point) => _box?.globalToLocal(point) ?? point;
 
   void beginPinch(Offset firstGlobal, Offset secondGlobal) {
+    stopInertia();
     final a = _toLocal(firstGlobal);
     final b = _toLocal(secondGlobal);
     final midpoint = (a + b) / 2;
@@ -102,6 +111,48 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
       matrix.getMaxScaleOnAxis(),
       Offset(matrix.storage[12], matrix.storage[13]) + delta,
     );
+  }
+
+  void startInertia(Offset velocity) {
+    stopInertia();
+    if (!isZoomed || velocity.distance < 75) return;
+    final matrix = _transform.value;
+    _inertiaX = FrictionSimulation(
+      _friction,
+      matrix.storage[12],
+      velocity.dx,
+      tolerance: const Tolerance(velocity: 10),
+    );
+    _inertiaY = FrictionSimulation(
+      _friction,
+      matrix.storage[13],
+      velocity.dy,
+      tolerance: const Tolerance(velocity: 10),
+    );
+    _inertiaTicker.start();
+  }
+
+  void stopInertia() {
+    _inertiaTicker.stop();
+    _inertiaX = null;
+    _inertiaY = null;
+  }
+
+  void _onInertiaTick(Duration elapsed) {
+    final horizontal = _inertiaX;
+    final vertical = _inertiaY;
+    if (horizontal == null || vertical == null) return;
+    final time = elapsed.inMicroseconds / Duration.microsecondsPerSecond;
+    final next = Offset(horizontal.x(time), vertical.x(time));
+    _setTransform(_transform.value.getMaxScaleOnAxis(), next);
+
+    // Stop once both axes have slowed down or reached their hard limits.
+    final matrix = _transform.value;
+    final xDone = horizontal.isDone(time) ||
+        (matrix.storage[12] - next.dx).abs() > 0.01;
+    final yDone = vertical.isDone(time) ||
+        (matrix.storage[13] - next.dy).abs() > 0.01;
+    if (xDone && yDone) stopInertia();
   }
 
   void _setTransform(double scale, Offset translation) {

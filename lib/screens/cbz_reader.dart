@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:kurage/providers/update_pagenum.dart';
 import 'package:kurage/providers/download_queue.dart';
 import 'package:isar/isar.dart';
@@ -90,6 +91,7 @@ class _CbzReaderState extends State<CbzReader>
   // Track touches above PageView: once a drag starts, the next pointer may
   // hit a neighboring page, not the first page's ReaderPinchZoom.
   final Map<int, Offset> _readerTouches = <int, Offset>{};
+  VelocityTracker? _panVelocityTracker;
   final Map<int, GlobalKey<ReaderPinchZoomState>> _zoomPageKeys = {};
   final Map<int, ValueNotifier<double>> _zoomScales = {};
   final ReaderPrefilterCache _prefilter = ReaderPrefilterCache();
@@ -1092,6 +1094,12 @@ class _CbzReaderState extends State<CbzReader>
 
   void _readerPointerDown(PointerDownEvent event) {
     if (_readerTouches.isEmpty) {
+      final zoom = _zoomState(_activeZoomPage);
+      zoom?.stopInertia();
+      _panVelocityTracker = _zoomScrollLocked && (zoom?.isZoomed ?? false)
+          ? (VelocityTracker.withKind(event.kind)
+            ..addPosition(event.timeStamp, event.position))
+          : null;
       _gestureHadMultitouch = false;
       // A page-turn gesture that arrives at a boundary is not allowed to
       // change volumes. Sample both boundaries at the *start* of this touch.
@@ -1126,7 +1134,6 @@ class _CbzReaderState extends State<CbzReader>
       // Take a snapshot of the boundaries BEFORE any movement. Reaching an
       // edge during this gesture must not trigger an unexpected page turn.
       _singleFingerStart = event.position;
-      final zoom = _zoomState(_activeZoomPage);
       _edgePositiveAtStart = !_edgePageTurnPending &&
           (zoom?.atPanBoundary(vertical: vertical, positive: true) ?? false);
       _edgeNegativeAtStart = !_edgePageTurnPending &&
@@ -1135,6 +1142,7 @@ class _CbzReaderState extends State<CbzReader>
     _readerTouches[event.pointer] = event.position;
     _updatePrefilterPause();
     if (_readerTouches.length == 2) {
+      _panVelocityTracker = null;
       _gestureHadMultitouch = true;
       _canSwipeNext = false;
       _canSwipePrevious = false;
@@ -1163,6 +1171,9 @@ class _CbzReaderState extends State<CbzReader>
     final previous = _readerTouches[event.pointer];
     if (previous == null) return;
     _readerTouches[event.pointer] = event.position;
+    if (_readerTouches.length == 1 && !_gestureHadMultitouch) {
+      _panVelocityTracker?.addPosition(event.timeStamp, event.position);
+    }
 
     // Observe only an extra swipe that begins at either volume boundary.
     // Suppress the fleeting early "Next:" preview: show only the release pill
@@ -1283,8 +1294,11 @@ class _CbzReaderState extends State<CbzReader>
     _precacheAround(target);
   }
 
-  void _readerPointerEnd(int pointer, {bool cancelled = false}) {
-    if (_readerTouches.remove(pointer) == null) return;
+  void _readerPointerEnd(PointerEvent event, {bool cancelled = false}) {
+    if (_readerTouches.remove(event.pointer) == null) return;
+    if (_readerTouches.isEmpty && !cancelled && !_gestureHadMultitouch) {
+      _panVelocityTracker?.addPosition(event.timeStamp, event.position);
+    }
     _updatePrefilterPause();
     if (_readerTouches.length >= 2) {
       // A third finger can replace a lifted pointer without scale jumping.
@@ -1293,6 +1307,10 @@ class _CbzReaderState extends State<CbzReader>
       return;
     }
     if (_readerTouches.isNotEmpty) return;
+
+    final velocity = _panVelocityTracker?.getVelocity().pixelsPerSecond ??
+        Offset.zero;
+    _panVelocityTracker = null;
 
     final volumeDelta = !cancelled &&
             !_gestureHadMultitouch &&
@@ -1320,6 +1338,8 @@ class _CbzReaderState extends State<CbzReader>
       state?.reset(); // Snap sub-pixel residual scaling back to exactly 1x.
       _activeZoomPage = null;
       _setZoomScrollLocked(false, _currentPage);
+    } else if (!cancelled && !_gestureHadMultitouch && !_edgeTurnConsumed) {
+      state?.startInertia(velocity);
     }
     // Keep _gestureHadMultitouch set until the NEXT pointer down, so a tap
     // callback from the just-finished gesture cannot queue a page turn.
@@ -1814,9 +1834,9 @@ class _CbzReaderState extends State<CbzReader>
                 behavior: HitTestBehavior.opaque,
                 onPointerDown: _readerPointerDown,
                 onPointerMove: _readerPointerMove,
-                onPointerUp: (event) => _readerPointerEnd(event.pointer),
+                onPointerUp: _readerPointerEnd,
                 onPointerCancel: (event) =>
-                    _readerPointerEnd(event.pointer, cancelled: true),
+                    _readerPointerEnd(event, cancelled: true),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTapUp: isVertical ? (_) => _toggleOverlay() : _handleTap,
