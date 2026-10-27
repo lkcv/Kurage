@@ -80,9 +80,6 @@ Future<void> main() async {
   }
   debugPrint("localPath: $localPath");
 
-  // set the logStoragePath variable
-  logStoragePath = "$localPath/Documents/";
-
   final loggedIn = (await isar.logins.count()) > 0;
   runApp(MyApp(loggedIn: loggedIn));
 }

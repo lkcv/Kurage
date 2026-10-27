@@ -8,7 +8,6 @@ import 'package:logger/logger.dart';
 // get the ApplicationDocumentsDirectory path
 
 late String localPath;
-String logStoragePath = "/storage/emulated/0/Documents/";
 
 Logger logger = Logger(
   output: kDebugMode
