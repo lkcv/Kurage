@@ -1,15 +1,13 @@
 // Remove a local download without removing its Jellyfin/Isar library entry.
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:isar/isar.dart';
 import 'package:kurage/models/entry.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/variables.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Shared by Volume Info and Settings. Throws on filesystem failure, leaving
-/// Isar's downloaded flag unchanged. Never touches the reader page cache.
+/// Removes a downloaded volume without removing its Isar library entry.
+/// Throws on filesystem failure and never touches the reader page cache.
 Future<bool> removeDownloadedVolume(String id) async {
   final isar = Isar.getInstance();
   if (isar == null) throw StateError('Database unavailable');
@@ -53,52 +51,3 @@ Future<bool> removeDownloadedVolume(String id) async {
   return true;
 }
 
-/// Confirmation dialog used by the existing Volume Info screen.
-/// Returns false on cancellation or failure; callers must not navigate away
-/// or change the displayed download status unless this returns true.
-Future<bool> deleteComic(String id, BuildContext context) async {
-  final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(AppLocalizations.of(dialogContext)?.delete ?? 'Delete Comic'),
-          content: Text(AppLocalizations.of(dialogContext)?.deleteConfirm ??
-              'Remove the downloaded copy? Reading progress will be kept.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(AppLocalizations.of(dialogContext)?.cancel ?? 'Cancel'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: Text(AppLocalizations.of(dialogContext)?.delete ?? 'Delete'),
-            ),
-          ],
-        ),
-      ) ?? false;
-  if (!confirmed) return false;
-  try {
-    return await removeDownloadedVolume(id);
-  } catch (error) {
-    logger.e('Could not delete local download: $error');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not remove download: $error')),
-      );
-    }
-    return false;
-  }
-}
-
-// Retain this entry point for any legacy callers.
-Future<void> confirmedDelete(String id, BuildContext context) async {
-  try {
-    await removeDownloadedVolume(id);
-  } catch (error) {
-    logger.e('Could not delete local download: $error');
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not remove download: $error')),
-      );
-    }
-  }
-}
