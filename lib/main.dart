@@ -18,7 +18,6 @@ import 'dart:io';
 
 import 'package:kurage/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
-import 'package:kurage/providers/language_provider.dart';
 import 'package:kurage/providers/theme_provider.dart';
 import 'widgets/floating_snackbar.dart';
 import 'package:kurage/variables.dart';
@@ -96,8 +95,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider<LocaleChangeNotifier>(
-            create: (context) => LocaleChangeNotifier(AppSettingsStore.current)),
         ChangeNotifierProvider<ThemeChangeNotifier>(
             create: (context) => ThemeChangeNotifier(AppSettingsStore.current)),
         ChangeNotifierProvider<ConnectionManager>(
@@ -115,16 +112,15 @@ class MyApp extends StatelessWidget {
       ],
       builder: (context, _) {
         return _SystemThemeFollower(
-          child: Consumer2<LocaleChangeNotifier, ThemeChangeNotifier>(
-            builder: (context, localeChangeNotifier, themeChangeNotifier, _) {
-          Locale locale = localeChangeNotifier.locale;
+          child: Consumer<ThemeChangeNotifier>(
+            builder: (context, themeChangeNotifier, _) {
           ThemeData themeData = themeChangeNotifier.getTheme;
           return MaterialApp(
             title: 'Kurage',
             debugShowCheckedModeBanner: false,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
-            locale: locale,
+            locale: const Locale('en'),
             // Use one consistent floating snackbar style for Light, Dark,
             // AMOLED and the OS-resolved System theme.
             theme: themeData.copyWith(
