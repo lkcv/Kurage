@@ -38,10 +38,8 @@ Future<String> get _localPath async {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // top bar always visible, bottom bar only visible when swiped up
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky, overlays: [
-    SystemUiOverlay.top,
-  ]);
+  // Keep system bars hidden; edge swipes reveal them temporarily.
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,

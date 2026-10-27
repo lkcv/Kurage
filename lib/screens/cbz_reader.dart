@@ -45,7 +45,6 @@ class CbzReader extends StatefulWidget {
   /// Prepare the active volume's cover position before popping this route.
   final Future<void> Function()? onPrepareCoverReturn;
   final bool continuingVolume;
-  final bool restoreSystemUiOnDispose;
   final VoidCallback? onContinuationLoadFailed;
 
   const CbzReader({
@@ -61,7 +60,6 @@ class CbzReader extends StatefulWidget {
     this.onPreviousVolume,
     this.onPrepareCoverReturn,
     this.continuingVolume = false,
-    this.restoreSystemUiOnDispose = true,
     this.onContinuationLoadFailed,
   });
 
@@ -166,9 +164,6 @@ class _CbzReaderState extends State<CbzReader>
     _prefilter.dispose();
     for (final scale in _zoomScales.values) {
       scale.dispose();
-    }
-    if (widget.restoreSystemUiOnDispose) {
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     _tapTicker.dispose();
     _clearStreamAfterPageWork(_stream);
@@ -1619,9 +1614,6 @@ class _CbzReaderState extends State<CbzReader>
       return;
     }
     setState(() => _showOverlay = !_showOverlay);
-    SystemChrome.setEnabledSystemUIMode(
-      _showOverlay ? SystemUiMode.edgeToEdge : SystemUiMode.immersiveSticky,
-    );
   }
 
   void _exit() {

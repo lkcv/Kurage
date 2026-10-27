@@ -10,7 +10,6 @@ import 'package:kurage/providers/volume_sort.dart';
 import 'package:kurage/providers/library_filter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/themes/theme_constants.dart';
@@ -768,14 +767,6 @@ class _VolumeReaderSessionState extends State<_VolumeReaderSession> {
   bool _openingVolume = false;
   int? _rollbackIndex;
 
-  @override
-  void dispose() {
-    // Only the session owns System UI restoration. Individual readers may
-    // be replaced without showing the Android bars between volumes.
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    super.dispose();
-  }
-
   void _recoverFailedContinuation() {
     if (!mounted || _rollbackIndex == null) return;
     final previous = _rollbackIndex!;
@@ -901,7 +892,6 @@ class _VolumeReaderSessionState extends State<_VolumeReaderSession> {
       // Returning to the initially tapped volume can still be a reload;
       // failure must recover the previous working reader in that case too.
       continuingVolume: _rollbackIndex != null,
-      restoreSystemUiOnDispose: false,
       onContinuationLoadFailed: _rollbackIndex != null
           ? _recoverFailedContinuation : null,
     );
