@@ -15,7 +15,6 @@ import 'package:kurage/themes/accent_palette.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart' as p_info;
 import 'package:provider/provider.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/widgets/reader_cache_settings.dart';
 import 'package:kurage/themes/theme_constants.dart';
@@ -122,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? const Alignment(0, -0.7)
                       : Alignment.center,
                   child: Text(
-                    AppLocalizations.of(context)?.settings ?? 'Settings',
+                    "Settings",
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -149,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   ListTile(
                     leading: const Icon(Icons.description_outlined),
-                    title: Text(AppLocalizations.of(context)?.licenses ?? 'Licenses'),
+                    title: Text("Licenses"),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
                       showLicensePage(
@@ -234,17 +233,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildPreferencesCard(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final themeOptions = <String, String>{
-      'system': l10n?.systemTheme ?? 'System',
-      'light': l10n?.lightTheme ?? 'Light',
-      'dark': l10n?.darkTheme ?? 'Dark',
-      'amoled': l10n?.amoledTheme ?? 'AMOLED',
+      'system': "System",
+      'light': "Light",
+      'dark': "Dark",
+      'amoled': "Amoled",
     };
     final directionOptions = <String, String>{
-      'LTR': l10n?.ltr ?? 'Left to Right',
-      'RTL': l10n?.rtl ?? 'Right to Left',
-      'Vertical': l10n?.vertical ?? 'Vertical',
+      'LTR': "Left to Right",
+      'RTL': "Right to Left",
+      'Vertical': "Vertical",
     };
     final themeNotifier = context.watch<ThemeChangeNotifier>();
     final accent = themeNotifier.accentColor;
@@ -256,11 +254,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _choiceTile(
             icon: Icons.brightness_6_outlined,
-            title: l10n?.theme ?? 'Theme',
+            title: "Theme",
             value: themeOptions[selectedTheme] ?? themeOptions['system']!,
             onTap: () async {
               final selected = await _showChoices(
-                title: l10n?.theme ?? 'Theme',
+                title: "Theme",
                 options: themeOptions,
                 selected: selectedTheme,
               );
@@ -296,11 +294,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(height: 1, indent: 16, endIndent: 16),
           _choiceTile(
             icon: Icons.format_textdirection_l_to_r_rounded,
-            title: l10n?.readingDirection ?? 'Reading Direction',
+            title: "Reading Direction",
             value: directionOptions[selectedDirection] ?? directionOptions['LTR']!,
             onTap: () async {
               final selected = await _showChoices(
-                title: l10n?.readingDirection ?? 'Reading Direction',
+                title: "Reading Direction",
                 options: directionOptions,
                 selected: selectedDirection,
               );

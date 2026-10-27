@@ -1,9 +1,0 @@
-{
-    "@@locale": "ar",
-    "pageLoginAddress": "عنوان الويب",
-    "pageLoginUsername": "اسم المستخدم",
-    "pageLoginPassword": "كلمة سر",
-    "connect": "اتصال",
-    "pageLoginOfflineReader": "قارئ غير متصل",
-    "permissionRequired": "الإذن مطلوب"
-}

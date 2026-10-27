@@ -11,7 +11,6 @@ import 'package:kurage/providers/library_filter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:kurage/models/folder.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
 import 'package:kurage/variables.dart';
@@ -691,8 +690,7 @@ class _CollectionScreenState extends State<CollectionScreen> with WidgetsBinding
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    AppLocalizations.of(context)?.noResultsFound ??
-                        'No results found in this folder',
+                    "No results found in this folder",
                     style: const TextStyle(
                       fontSize: 25,
                     ),
@@ -708,8 +706,7 @@ class _CollectionScreenState extends State<CollectionScreen> with WidgetsBinding
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    AppLocalizations.of(context)?.unknownError ??
-                        "An unknown error has occured.",
+                    "An unknown error has occured.",
                     style: const TextStyle(
                       fontSize: 25,
                     ),

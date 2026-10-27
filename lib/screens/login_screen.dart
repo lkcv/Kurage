@@ -7,7 +7,6 @@ import 'package:kurage/providers/connection_manager.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/screens/home_screen.dart';
 
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/variables.dart';
 import 'package:isar/isar.dart';
 import 'package:kurage/models/login.dart';
@@ -86,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final result = await LoginProvider.loginStatic(
-        address, username, context, _password.text,
+        address, username, _password.text,
       );
       if (!mounted) return;
       if (result == 'true') {
@@ -133,8 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   focusNode: _focusNode1,
                   keyboardType: TextInputType.url,
                   decoration: InputDecoration(
-                    labelText: AppLocalizations.of(context)?.pageLoginAddress ??
-                        "Your Address",
+                    labelText: "Web Address",
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -152,8 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   enableSuggestions: false,
                   decoration: InputDecoration(
                     labelText:
-                        AppLocalizations.of(context)?.pageLoginUsername ??
-                            "Username",
+                        "Username",
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -170,8 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: !_passwordVisible,
                   decoration: InputDecoration(
                     labelText:
-                        AppLocalizations.of(context)?.pageLoginPassword ??
-                            "Password",
+                        "Password",
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -205,7 +201,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(
                         width: 10,
                       ),
-                      Text(AppLocalizations.of(context)?.connect ?? "Connect",
+                      Text("Connect",
                           style: const TextStyle(fontSize: 20)),
                     ],
                   ),

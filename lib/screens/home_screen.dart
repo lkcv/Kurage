@@ -13,7 +13,6 @@ import 'package:kurage/screens/library_screen.dart';
 import 'package:kurage/screens/settings_screen.dart';
 import 'package:kurage/screens/search_screen.dart';
 import 'package:kurage/screens/login_screen.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/theme_provider.dart';
@@ -184,18 +183,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     tabs: [
                       GButton(
                         icon: Icons.local_library_outlined,
-                        text: AppLocalizations.of(context)?.library ??
-                            'Library',
+                        text: "Library",
                       ),
                       GButton(
                         icon: Icons.search,
-                        text: AppLocalizations.of(context)?.search ??
-                            'Search',
+                        text: "Search",
                       ),
                       GButton(
                         icon: Icons.settings,
-                        text: AppLocalizations.of(context)?.settings ??
-                            'Settings',
+                        text: "Settings",
                       ),
                     ],
                     selectedIndex: _selectedIndex,
@@ -211,9 +207,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Semantics(
                       label: [
-                        AppLocalizations.of(context)?.library ?? 'Library',
-                        AppLocalizations.of(context)?.search ?? 'Search',
-                        AppLocalizations.of(context)?.settings ?? 'Settings',
+                        "Library",
+                        "Search",
+                        "Settings",
                       ][index],
                       button: true,
                       selected: _selectedIndex == index,

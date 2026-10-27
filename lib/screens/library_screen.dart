@@ -15,7 +15,6 @@ import 'package:kurage/providers/server_progress_revision.dart';
 import 'package:kurage/screens/collection_screen.dart';
 import 'package:isar/isar.dart';
 import 'package:kurage/models/entry.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
 import 'package:kurage/variables.dart';
@@ -496,11 +495,9 @@ class _LibraryScreenState extends State<LibraryScreen>
               AppErrorKind.timeout ||
               AppErrorKind.network,
         ) =>
-          AppLocalizations.of(context)?.serverNotFound ??
-              "Could not reach the server. Please check your connection and try again.",
+          "Could not reach the server. Check its address and your connection.",
         ClassifiedError(kind: AppErrorKind.httpResponse, httpStatus: 401) =>
-          AppLocalizations.of(context)?.invalidCredentials ??
-              "Your session has expired. Please log in again.",
+          "Incorrect username or password",
         _ => "Couldn't refresh the library. Please try again.",
       };
 
@@ -855,7 +852,7 @@ class _LibraryScreenState extends State<LibraryScreen>
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           title: Text(
-            AppLocalizations.of(context)?.error ?? "Error",
+            "Error",
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -912,7 +909,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                 ? const Alignment(0, -0.7)
                 : Alignment.center,
             child: Text(
-              AppLocalizations.of(context)?.library ?? "Library",
+              "Library",
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,

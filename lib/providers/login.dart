@@ -5,10 +5,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:kurage/providers/session_store.dart';
 import 'package:package_info_plus/package_info_plus.dart' as package_info;
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/providers/jellyfin_api.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:kurage/variables.dart';
@@ -71,35 +69,34 @@ class LoginProvider {
     }
   }
 
-  static String _httpLoginError(int? status, AppLocalizations? l) {
+  static String _httpLoginError(int? status) {
     switch (status) {
       case 400:
       case 401:
       case 403:
-        return l?.invalidCredentials ?? 'Incorrect username or password.';
+        return "Incorrect username or password";
       case 404:
-        return l?.serverNotFound ??
-            'Could not find Jellyfin at this address. Check the server URL.';
+        return "Could not reach the server. Check its address and your connection.";
       case 407:
-        return l?.proxyAuthRequired ?? 'The server requires proxy authentication.';
+        return "The server requires proxy authentication.";
       case 408:
       case 504:
-        return l?.requestTimeout ?? 'The connection timed out. Please try again.';
+        return "The connection timed out. Please try again.";
       case 429:
         return 'Too many attempts. Please wait a moment and try again.';
       case 500:
-        return l?.serverError ?? 'The server encountered an error. Please try again later.';
+        return "The server encountered an error. Please try again later.";
       case 502:
       case 503:
-        return l?.badGateway ?? 'The server is temporarily unavailable. Please try again later.';
+        return "The server is temporarily unavailable. Please try again later.";
       default:
         return 'Could not sign in. Please check the server and try again.';
     }
   }
 
-  static String _dioLoginError(DioException e, AppLocalizations? l) {
+  static String _dioLoginError(DioException e) {
     if (e.response?.statusCode != null) {
-      return _httpLoginError(e.response!.statusCode, l);
+      return _httpLoginError(e.response!.statusCode);
     }
     switch (e.type) {
       case DioExceptionType.connectionTimeout:
@@ -190,18 +187,15 @@ class LoginProvider {
   static Future<String> loginStatic(
     String url,
     String username,
-    BuildContext context, [
-    String password = "",
-  ]) async {
-    final l = AppLocalizations.of(context);
+    String password,
+  ) async {
     final requestUrl = url.trim().replaceFirst(RegExp(r'/+$'), '');
     final address = Uri.tryParse(requestUrl);
     if (address == null ||
         (address.scheme != 'http' && address.scheme != 'https') ||
         !address.hasAuthority ||
         address.host.isEmpty) {
-      return l?.invalidUrl ??
-          'Enter a valid server address starting with http:// or https://.';
+      return "Enter a valid server address starting with http:// or https://.";
     }
     if (username.trim().isEmpty) return 'Enter your username.';
 
@@ -228,7 +222,7 @@ class LoginProvider {
       );
       if (response.statusCode != 200) {
         logger.w('Login rejected (HTTP ${response.statusCode})');
-        return _httpLoginError(response.statusCode, l);
+        return _httpLoginError(response.statusCode);
       }
 
       final data = _authData(response.data);
@@ -249,7 +243,7 @@ class LoginProvider {
       return "true";
     } on DioException catch (e) {
       logger.w('Login network failure (${e.type}, HTTP ${e.response?.statusCode})');
-      return _dioLoginError(e, l);
+      return _dioLoginError(e);
     } catch (e) {
       logger.e('Unexpected login failure (${e.runtimeType})');
       return 'Could not sign in. Please try again.';

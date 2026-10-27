@@ -15,7 +15,6 @@ import 'package:kurage/widgets/cover_opening_route.dart';
 import 'package:kurage/widgets/volume_actions.dart';
 import 'package:provider/provider.dart';
 import 'package:string_similarity/string_similarity.dart';
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/screens/collection_screen.dart' show KuroStyleBookCard;
 
@@ -308,7 +307,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               minHeight: 36,
                             ),
                             hintText: visibleQuery ??
-                                '${AppLocalizations.of(context)?.search ?? 'Search'}...',
+                                '${"Search"}...',
                             // Match the input's normal text style while the
                             // real controller value is temporarily empty.
                             hintStyle: visibleQuery == null
@@ -352,8 +351,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ? (_enterVisibleQuery.value ?? _searchController.text).trim().isEmpty
               ? Center(
                   child: Text(
-                      AppLocalizations.of(context)?.searchBook ??
-                          'Please search for a book',
+                      "Please search for a book",
                       style: const TextStyle(
                         fontSize: 20,
                       )),
@@ -362,8 +360,7 @@ class _SearchScreenState extends State<SearchScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : Center(
                       child: Text(
-                          AppLocalizations.of(context)?.noResults ??
-                              'No results found',
+                          "No results found",
                           style: const TextStyle(fontSize: 20)),
                     )
           : GridView.builder(

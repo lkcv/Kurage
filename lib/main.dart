@@ -16,7 +16,6 @@ import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/download_queue.dart';
 import 'dart:io';
 
-import 'package:kurage/l10n/app_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/providers/theme_provider.dart';
 import 'widgets/floating_snackbar.dart';
@@ -118,8 +117,6 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             title: 'Kurage',
             debugShowCheckedModeBanner: false,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            supportedLocales: AppLocalizations.supportedLocales,
             locale: const Locale('en'),
             // Use one consistent floating snackbar style for Light, Dark,
             // AMOLED and the OS-resolved System theme.
