@@ -7,7 +7,6 @@ import 'package:kurage/providers/update_pagenum.dart';
 import 'package:kurage/providers/download_queue.dart';
 import 'package:isar/isar.dart';
 import 'package:kurage/models/entry.dart';
-import 'package:kurage/providers/progress.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/providers/app_settings_store.dart';
 import 'package:kurage/providers/session_store.dart';
@@ -243,8 +242,6 @@ class _CbzReaderState extends State<CbzReader>
       await getData();
       if (!mounted) return;
       await getChapters();
-      if (!mounted) return;
-      await getProgress(comicId);
       if (!mounted) return;
 
       if (_isStreaming) {
