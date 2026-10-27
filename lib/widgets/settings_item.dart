@@ -1,4 +1,4 @@
-// Purpose: This file contains the ComponentsSettingsItem widget which is used to display a user's profile picture and name in a card format.
+// Language selection dropdown used by Settings.
 /*
  * Modified from https://github.com/babstrap/babstrap_settings_screen (babstrap_settings_screen)
  * Licensed under the MIT license
@@ -7,31 +7,9 @@
 
 import 'package:flutter/material.dart';
 
-class SettingsScreenUtils {
-  static double? settingsGroupIconSize;
-  static TextStyle? settingsGroupTitleStyle;
-}
-
-class IconStyle {
-  Color? iconsColor;
-  bool? withBackground;
-  Color? backgroundColor;
-  double? borderRadius;
-
-  IconStyle({
-    this.iconsColor = Colors.white,
-    this.withBackground = true,
-    this.backgroundColor = Colors.blue,
-    this.borderRadius = 8,
-  });
-}
-
 class SettingsItem extends StatefulWidget {
   final IconData icon;
-  final IconStyle? iconStyle;
   final String title;
-  final TextStyle? titleStyle;
-  final TextStyle? subtitleStyle;
   final ValueChanged<dynamic>? onChange;
   final Map<String, dynamic>? values;
   final String selected;
@@ -40,10 +18,7 @@ class SettingsItem extends StatefulWidget {
   const SettingsItem({
     super.key,
     required this.icon,
-    this.iconStyle,
     required this.title,
-    this.titleStyle,
-    this.subtitleStyle,
     this.backgroundColor,
     required this.selected,
     required this.values,
@@ -62,31 +37,13 @@ class _SettingsItemState extends State<SettingsItem> {
       child: Container(
         color: widget.backgroundColor,
         child: ListTile(
-          leading: (widget.iconStyle != null &&
-                  widget.iconStyle!.withBackground!)
-              ? Container(
-                  decoration: BoxDecoration(
-                    color: widget.iconStyle!.backgroundColor,
-                    borderRadius:
-                        BorderRadius.circular(widget.iconStyle!.borderRadius!),
-                  ),
-                  padding: EdgeInsets.all(5),
-                  child: Icon(
-                    widget.icon,
-                    size: SettingsScreenUtils.settingsGroupIconSize,
-                    color: widget.iconStyle!.iconsColor,
-                  ),
-                )
-              : Padding(
-                  padding: EdgeInsets.all(5),
-                  child: Icon(
-                    widget.icon,
-                    size: SettingsScreenUtils.settingsGroupIconSize,
-                  ),
-                ),
+          leading: Padding(
+            padding: const EdgeInsets.all(5),
+            child: Icon(widget.icon),
+          ),
           title: Text(
             widget.title,
-            style: widget.titleStyle ?? TextStyle(fontWeight: FontWeight.bold),
+            style: const TextStyle(fontWeight: FontWeight.bold),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
