@@ -16,6 +16,7 @@ migrate_working_dir/
 /web/
 /test/
 *.patch
+/android/build
 
 # IntelliJ related
 *.iml
