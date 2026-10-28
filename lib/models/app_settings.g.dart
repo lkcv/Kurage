@@ -27,23 +27,18 @@ const AppSettingsSchema = CollectionSchema(
       name: r'libraryNames',
       type: IsarType.stringList,
     ),
-    r'localeString': PropertySchema(
-      id: 2,
-      name: r'localeString',
-      type: IsarType.string,
-    ),
     r'readerCacheLimitMb': PropertySchema(
-      id: 3,
+      id: 2,
       name: r'readerCacheLimitMb',
       type: IsarType.long,
     ),
     r'readingDirection': PropertySchema(
-      id: 4,
+      id: 3,
       name: r'readingDirection',
       type: IsarType.string,
     ),
     r'themeSelection': PropertySchema(
-      id: 5,
+      id: 4,
       name: r'themeSelection',
       type: IsarType.string,
     )
@@ -75,7 +70,6 @@ int _appSettingsEstimateSize(
       bytesCount += value.length * 3;
     }
   }
-  bytesCount += 3 + object.localeString.length * 3;
   bytesCount += 3 + object.readingDirection.length * 3;
   bytesCount += 3 + object.themeSelection.length * 3;
   return bytesCount;
@@ -89,10 +83,9 @@ void _appSettingsSerialize(
 ) {
   writer.writeLong(offsets[0], object.accentColor);
   writer.writeStringList(offsets[1], object.libraryNames);
-  writer.writeString(offsets[2], object.localeString);
-  writer.writeLong(offsets[3], object.readerCacheLimitMb);
-  writer.writeString(offsets[4], object.readingDirection);
-  writer.writeString(offsets[5], object.themeSelection);
+  writer.writeLong(offsets[2], object.readerCacheLimitMb);
+  writer.writeString(offsets[3], object.readingDirection);
+  writer.writeString(offsets[4], object.themeSelection);
 }
 
 AppSettings _appSettingsDeserialize(
@@ -104,10 +97,9 @@ AppSettings _appSettingsDeserialize(
   final object = AppSettings(
     accentColor: reader.readLongOrNull(offsets[0]),
     libraryNames: reader.readStringList(offsets[1]) ?? const [],
-    localeString: reader.readStringOrNull(offsets[2]) ?? 'en',
-    readerCacheLimitMb: reader.readLongOrNull(offsets[3]),
-    readingDirection: reader.readStringOrNull(offsets[4]) ?? 'LTR',
-    themeSelection: reader.readStringOrNull(offsets[5]) ?? 'system',
+    readerCacheLimitMb: reader.readLongOrNull(offsets[2]),
+    readingDirection: reader.readStringOrNull(offsets[3]) ?? 'LTR',
+    themeSelection: reader.readStringOrNull(offsets[4]) ?? 'system',
   );
   object.isarId = id;
   return object;
@@ -125,12 +117,10 @@ P _appSettingsDeserializeProp<P>(
     case 1:
       return (reader.readStringList(offset) ?? const []) as P;
     case 2:
-      return (reader.readStringOrNull(offset) ?? 'en') as P;
-    case 3:
       return (reader.readLongOrNull(offset)) as P;
-    case 4:
+    case 3:
       return (reader.readStringOrNull(offset) ?? 'LTR') as P;
-    case 5:
+    case 4:
       return (reader.readStringOrNull(offset) ?? 'system') as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -587,142 +577,6 @@ extension AppSettingsQueryFilter
   }
 
   QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringEqualTo(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringGreaterThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        include: include,
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringLessThan(
-    String value, {
-    bool include = false,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.lessThan(
-        include: include,
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringBetween(
-    String lower,
-    String upper, {
-    bool includeLower = true,
-    bool includeUpper = true,
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.between(
-        property: r'localeString',
-        lower: lower,
-        includeLower: includeLower,
-        upper: upper,
-        includeUpper: includeUpper,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringStartsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.startsWith(
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringEndsWith(
-    String value, {
-    bool caseSensitive = true,
-  }) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.endsWith(
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringContains(String value, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.contains(
-        property: r'localeString',
-        value: value,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringMatches(String pattern, {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.matches(
-        property: r'localeString',
-        wildcard: pattern,
-        caseSensitive: caseSensitive,
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringIsEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.equalTo(
-        property: r'localeString',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
-      localeStringIsNotEmpty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addFilterCondition(FilterCondition.greaterThan(
-        property: r'localeString',
-        value: '',
-      ));
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
       readerCacheLimitMbIsNull() {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(const FilterCondition.isNull(
@@ -1089,19 +943,6 @@ extension AppSettingsQuerySortBy
     });
   }
 
-  QueryBuilder<AppSettings, AppSettings, QAfterSortBy> sortByLocaleString() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'localeString', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
-      sortByLocaleStringDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'localeString', Sort.desc);
-    });
-  }
-
   QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
       sortByReaderCacheLimitMb() {
     return QueryBuilder.apply(this, (query) {
@@ -1170,19 +1011,6 @@ extension AppSettingsQuerySortThenBy
     });
   }
 
-  QueryBuilder<AppSettings, AppSettings, QAfterSortBy> thenByLocaleString() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'localeString', Sort.asc);
-    });
-  }
-
-  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
-      thenByLocaleStringDesc() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addSortBy(r'localeString', Sort.desc);
-    });
-  }
-
   QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
       thenByReaderCacheLimitMb() {
     return QueryBuilder.apply(this, (query) {
@@ -1239,13 +1067,6 @@ extension AppSettingsQueryWhereDistinct
     });
   }
 
-  QueryBuilder<AppSettings, AppSettings, QDistinct> distinctByLocaleString(
-      {bool caseSensitive = true}) {
-    return QueryBuilder.apply(this, (query) {
-      return query.addDistinctBy(r'localeString', caseSensitive: caseSensitive);
-    });
-  }
-
   QueryBuilder<AppSettings, AppSettings, QDistinct>
       distinctByReaderCacheLimitMb() {
     return QueryBuilder.apply(this, (query) {
@@ -1288,12 +1109,6 @@ extension AppSettingsQueryProperty
       libraryNamesProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'libraryNames');
-    });
-  }
-
-  QueryBuilder<AppSettings, String, QQueryOperations> localeStringProperty() {
-    return QueryBuilder.apply(this, (query) {
-      return query.addPropertyName(r'localeString');
     });
   }
 

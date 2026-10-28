@@ -10,7 +10,6 @@ class AppSettings {
   String themeSelection;
   int? accentColor;
   String readingDirection;
-  String localeString;
   int? readerCacheLimitMb;
   List<String> libraryNames;
 
@@ -18,7 +17,6 @@ class AppSettings {
     this.themeSelection = 'system',
     this.accentColor,
     this.readingDirection = 'LTR',
-    this.localeString = 'en',
     this.readerCacheLimitMb,
     this.libraryNames = const [],
   });
@@ -27,7 +25,6 @@ class AppSettings {
         themeSelection: themeSelection,
         accentColor: accentColor,
         readingDirection: readingDirection,
-        localeString: localeString,
         readerCacheLimitMb: readerCacheLimitMb,
         libraryNames: List<String>.of(libraryNames),
       );
