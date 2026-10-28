@@ -462,7 +462,6 @@ class _CbzReaderState extends State<CbzReader>
 
     path = entry!.folderPath;
     logger.d("title: ${entry.title}");
-    logger.d("path: ${entry.filePath}");
     logger.d("folder path: ${entry.folderPath}");
     logger.d("downloaded: ${entry.downloaded}");
 

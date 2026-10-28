@@ -82,13 +82,9 @@ Future<Set<String>> getComics(String comicsId) async {
       imagePath: imageTags?['Primary'] != null
           ? '$url/Items/$itemId/Images/Primary?quality=90'
           : 'Asset',
-      releaseDate: element['ProductionYear'].toString(),
       path: element['Path'] as String? ?? '',
-      description: element['Overview'] as String? ?? '',
       url: url,
-      rating: (element['CommunityRating'] as num?)?.toDouble() ?? -1,
       type: isRealFolder ? EntryType.folder : EntryType.book,
-      tags: (element['Tags'] as List<dynamic>?)?.cast<String>().toList() ?? [],
       parentId: element['ParentId'] as String? ?? '',
       downloaded: false,
     );
@@ -112,7 +108,6 @@ Future<Set<String>> getComics(String comicsId) async {
       entry.downloaded = previous.downloaded;
       entry.progress = previous.progress;
       entry.folderPath = previous.folderPath;
-      entry.filePath = previous.filePath;
       entry.pageNum = previous.pageNum;
     }
     // Jellyfin reports comic page indices as 10,000 ticks per zero-based

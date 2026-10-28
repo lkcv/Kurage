@@ -89,7 +89,6 @@ Future<Entry> downloadEntry(
 
   final originalDownloaded = entry.downloaded;
   final originalFolderPath = entry.folderPath;
-  final originalFilePath = entry.filePath;
   final root = await getApplicationDocumentsDirectory();
   final folderName = await fileNameFromTitle(entry.title);
   final finalDirectory = Directory('${root.path}/$folderName');
@@ -142,7 +141,6 @@ Future<Entry> downloadEntry(
           if (valid) {
             checkDownloadCanceled(cancelToken);
             entry.folderPath = finalDirectory.path;
-            entry.filePath = finalDirectory.path;
             entry.downloaded = true;
             await isar.writeTxn(() async => isar.entrys.put(entry));
             committed = true;
@@ -276,7 +274,6 @@ Future<Entry> downloadEntry(
     await staging.rename(finalDirectory.path);
     published = true;
     entry.folderPath = finalDirectory.path;
-    entry.filePath = finalDirectory.path;
     entry.downloaded = true;
     checkDownloadCanceled(cancelToken);
     await isar.writeTxn(() async => isar.entrys.put(entry));
@@ -307,7 +304,6 @@ Future<Entry> downloadEntry(
     if (!committed) {
       entry.downloaded = originalDownloaded;
       entry.folderPath = originalFolderPath;
-      entry.filePath = originalFilePath;
     }
     if (cancelToken?.isCancelled ?? false) {
       await discardPageDownload(entry);

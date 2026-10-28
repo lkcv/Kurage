@@ -44,8 +44,7 @@ Future<bool> removeDownloadedVolume(String id) async {
   // Preserve pageNum, progress, favorites, server metadata and image caches.
   entry
     ..downloaded = false
-    ..folderPath = ''
-    ..filePath = '';
+    ..folderPath = '';
   await isar.writeTxn(() async => isar.entrys.put(entry));
   logger.i('Removed local download: ${entry.title}');
   return true;

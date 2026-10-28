@@ -20,67 +20,35 @@ class Entry {
   @Index()
   String id;
   String title;
-  String description;
   String imagePath;
-  String releaseDate;
   bool downloaded = false;
   String path;
   String url;
-  List<String> tags;
-  double rating = -1;
   double progress = 0.0;
   int pageNum = 0;
   String folderPath = "";
-  String filePath = "";
   @enumerated
   EntryType type;
   String parentId = "";
 
-  /// ComicInfoXML fields (for comics)
-  String? writer;
-  String? penciller;
-  String? inker;
-  String? colorist;
-  String? letterer;
-  String? coverArtist;
-  String? editor;
-  String? translator;
-  String? publisher;
-  String? imprint;
-
   Entry({
     required this.id,
     required this.title,
-    required this.description,
     required this.imagePath,
-    required this.releaseDate,
     this.downloaded = false,
     required this.path,
     required this.url,
-    required this.tags,
-    required this.rating,
     this.progress = 0.0,
     this.pageNum = 0,
     this.folderPath = '',
-    this.filePath = '',
     this.type = EntryType.book,
     this.parentId = '',
-    this.writer,
-    this.penciller,
-    this.inker,
-    this.colorist,
-    this.letterer,
-    this.coverArtist,
-    this.editor,
-    this.translator,
-    this.publisher,
-    this.imprint,
     this.isarId = Isar.autoIncrement,
   });
 
   // toString
   @override
   String toString() {
-    return 'Entry{\n\tid: $id,\n\ttitle: $title,\n\tdescription: $description,\n\timagePath: $imagePath,\n\treleaseDate: $releaseDate,\n\tdownloaded: $downloaded,\n\tpath: $path,\n\turl: $url,\n\ttags: $tags,\n\trating: $rating,\n\tprogress: $progress,\n\tpageNum: $pageNum,\n\tfolderPath: $folderPath,\n\tfilePath: $filePath,\n\ttype: $type,\n\tparentId: $parentId,\n\twriter: $writer,\n\tpenciller: $penciller,\n\tinker: $inker,\n\tcolorist: $colorist,\n\tletterer: $letterer,\n\tcoverArtist: $coverArtist,\n\teditor: $editor,\n\ttranslator: $translator,\n\tpublisher: $publisher,\n\timprint: $imprint,\n}';
+    return 'Entry{\n\tid: $id,\n\ttitle: $title,\n\timagePath: $imagePath,\n\tdownloaded: $downloaded,\n\tpath: $path,\n\turl: $url,\n\tprogress: $progress,\n\tpageNum: $pageNum,\n\tfolderPath: $folderPath,\n\ttype: $type,\n\tparentId: $parentId,\n}';
   }
 }
