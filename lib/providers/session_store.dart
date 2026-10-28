@@ -33,8 +33,16 @@ class Session {
 class SessionStore {
   static const _storage = FlutterSecureStorage();
   static const _secureKeys = <String>[
-    'server', 'accessToken', 'password', 'username', 'UserId', 'ServerId',
-    'client', 'device', 'deviceId', 'version',
+    'server',
+    'accessToken',
+    'password',
+    'username',
+    'UserId',
+    'ServerId',
+    'client',
+    'device',
+    'deviceId',
+    'version',
   ];
   static Session _current = const Session();
 
@@ -80,15 +88,17 @@ class SessionStore {
     final isar = Isar.getInstance()!;
     await isar.writeTxn(() async {
       await isar.logins.clear();
-      await isar.logins.put(Login(
-        serverUrl: server,
-        username: username,
-        userId: userId,
-        client: client,
-        device: device,
-        deviceId: deviceId,
-        version: version,
-      ));
+      await isar.logins.put(
+        Login(
+          serverUrl: server,
+          username: username,
+          userId: userId,
+          client: client,
+          device: device,
+          deviceId: deviceId,
+          version: version,
+        ),
+      );
     });
     _current = Session(
       server: server,

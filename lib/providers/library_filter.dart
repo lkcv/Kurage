@@ -24,8 +24,7 @@ class LibraryFilter {
   static bool isUnread(Entry entry) =>
       entry.pageNum == 0 && entry.progress <= 0;
   static bool isFinished(Entry entry) => entry.progress >= 100;
-  static bool isReading(Entry entry) =>
-      !isUnread(entry) && !isFinished(entry);
+  static bool isReading(Entry entry) => !isUnread(entry) && !isFinished(entry);
 
   // Both enabled filters must match the same volume (intersection).
   // This also controls filtered series-card progress.
@@ -52,13 +51,12 @@ class LibraryFilter {
 
   List<Folder> filterFolders(List<Folder> folders, Set<String> matchingIds) {
     if (!isActive) return folders;
-    return folders.where((folder) =>
-        folder.bookIds.any(matchingIds.contains)).toList();
+    return folders
+        .where((folder) => folder.bookIds.any(matchingIds.contains))
+        .toList();
   }
 
   // Null means an unfiltered series, which keeps the existing all-volume pill.
   int? matchingVolumeCount(Folder folder, Set<String> matchingIds) =>
-      isActive
-          ? folder.bookIds.where(matchingIds.contains).length
-          : null;
+      isActive ? folder.bookIds.where(matchingIds.contains).length : null;
 }

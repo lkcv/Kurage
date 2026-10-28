@@ -40,8 +40,11 @@ class _SearchHeaderCornersPainter extends CustomPainter {
       ..moveTo(size.width - r, 0)
       ..lineTo(size.width, 0)
       ..lineTo(size.width, r)
-      ..arcToPoint(Offset(size.width - r, 0),
-          radius: cornerRadius, clockwise: false)
+      ..arcToPoint(
+        Offset(size.width - r, 0),
+        radius: cornerRadius,
+        clockwise: false,
+      )
       ..close();
 
     canvas.drawPath(left, paint);
@@ -163,12 +166,12 @@ class _SearchScreenState extends State<SearchScreen> {
   // Search uses the same volume actions as Collection, without losing its
   // query, grid position, or the direct Reader opening animation.
   Future<void> _openVolumeActions(Entry entry) => showVolumeActions(
-        context,
-        entry,
-        onChanged: (_) {
-          if (mounted) unawaited(_refreshCatalog());
-        },
-      );
+    context,
+    entry,
+    onChanged: (_) {
+      if (mounted) unawaited(_refreshCatalog());
+    },
+  );
 
   List<Entry> searchResults = [];
   // List<Map<String, dynamic>> searchResults = [];
@@ -234,10 +237,12 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final headerBrightness = Theme.of(context).brightness;
-    final headerBackground =
-        FloatingSurfacePalette.topBarBackground(headerBrightness);
-    final headerForeground =
-        FloatingSurfacePalette.foreground(headerBrightness);
+    final headerBackground = FloatingSurfacePalette.topBarBackground(
+      headerBrightness,
+    );
+    final headerForeground = FloatingSurfacePalette.foreground(
+      headerBrightness,
+    );
     // Intercept Android system/gesture back. iOS edge-swipe only works for
     // pushed routes; Search is a tab, so the leading control covers that case.
     return PopScope(
@@ -249,164 +254,170 @@ class _SearchScreenState extends State<SearchScreen> {
         if (!didPop) _handleBack();
       },
       child: Scaffold(
-      // Let results scroll behind the 90%-opaque header; the grid below
-      // reserves the header height so its first row is fully visible.
-      extendBodyBehindAppBar: true,
-      appBar: PreferredSize(
-        // Settings-style translucent header with breathing room around the pill.
-        preferredSize: ui.Size.fromHeight(MediaQuery.of(context).padding.top + 48),
-        child: Container(
-          color: headerBackground,
-          padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
-          child: SizedBox(
-            height: 48,
-            child: Stack(
-              alignment: Alignment.center,
-              clipBehavior: Clip.none,
-              children: [
-                // Paint below the header without intercepting search gestures.
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: -_headerCornerRadius,
-                  height: _headerCornerRadius,
-                  child: IgnorePointer(
-                    child: CustomPaint(
-                      painter: _SearchHeaderCornersPainter(
-                        color: headerBackground,
-                      ),
-                    ),
-                  ),
-                ),
-                // Equal left/right margins center the pill on the *screen*,
-                // rather than in the space remaining after the back button.
-                Positioned.fill(
-                  left: 48,
-                  right: 48,
-                  child: Center(
-                    child: Container(
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withValues(alpha: 0.90),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: ValueListenableBuilder<String?>(
-                        valueListenable: _enterVisibleQuery,
-                        builder: (context, visibleQuery, _) => TextField(
-                          autofocus: true,
-                          focusNode: _searchFocusNode,
-                          controller: _searchController,
-                          textAlignVertical: TextAlignVertical.center,
-                          decoration: InputDecoration(
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
-                            prefixIcon: const Icon(Icons.search),
-                            prefixIconConstraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 36,
-                            ),
-                            hintText: visibleQuery ??
-                                '${"Search"}...',
-                            // Match the input's normal text style while the
-                            // real controller value is temporarily empty.
-                            hintStyle: visibleQuery == null
-                                ? null
-                                : Theme.of(context).textTheme.titleMedium,
-                            border: InputBorder.none,
-                          ),
-                          onChanged: _onQueryChanged,
-                          onEditingComplete: () =>
-                              unawaited(_dismissKeyboardOnEnter()),
+        // Let results scroll behind the 90%-opaque header; the grid below
+        // reserves the header height so its first row is fully visible.
+        extendBodyBehindAppBar: true,
+        appBar: PreferredSize(
+          // Settings-style translucent header with breathing room around the pill.
+          preferredSize: ui.Size.fromHeight(
+            MediaQuery.of(context).padding.top + 48,
+          ),
+          child: Container(
+            color: headerBackground,
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            child: SizedBox(
+              height: 48,
+              child: Stack(
+                alignment: Alignment.center,
+                clipBehavior: Clip.none,
+                children: [
+                  // Paint below the header without intercepting search gestures.
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: -_headerCornerRadius,
+                    height: _headerCornerRadius,
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        painter: _SearchHeaderCornersPainter(
+                          color: headerBackground,
                         ),
                       ),
                     ),
                   ),
-                ),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: Icon(Icons.arrow_back, color: headerForeground),
-                    tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                    onPressed: _handleBack,
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 48,
-                      minHeight: 36,
+                  // Equal left/right margins center the pill on the *screen*,
+                  // rather than in the space remaining after the back button.
+                  Positioned.fill(
+                    left: 48,
+                    right: 48,
+                    child: Center(
+                      child: Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).primaryColor.withValues(alpha: 0.90),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: ValueListenableBuilder<String?>(
+                          valueListenable: _enterVisibleQuery,
+                          builder: (context, visibleQuery, _) => TextField(
+                            autofocus: true,
+                            focusNode: _searchFocusNode,
+                            controller: _searchController,
+                            textAlignVertical: TextAlignVertical.center,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              prefixIcon: const Icon(Icons.search),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 36,
+                              ),
+                              hintText: visibleQuery ?? '${"Search"}...',
+                              // Match the input's normal text style while the
+                              // real controller value is temporarily empty.
+                              hintStyle: visibleQuery == null
+                                  ? null
+                                  : Theme.of(context).textTheme.titleMedium,
+                              border: InputBorder.none,
+                            ),
+                            onChanged: _onQueryChanged,
+                            onEditingComplete: () =>
+                                unawaited(_dismissKeyboardOnEnter()),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(Icons.arrow_back, color: headerForeground),
+                      tooltip: MaterialLocalizations.of(
+                        context,
+                      ).backButtonTooltip,
+                      onPressed: _handleBack,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 48,
+                        minHeight: 36,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-      ),
 
-      // Only a completed tap counts as an outside tap. A pointer-down
-      // listener here would also intercept the start of Android's edge Back.
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: _hideKeyboardFromBodyTap,
-        child: searchResults.isEmpty
-          ? (_enterVisibleQuery.value ?? _searchController.text).trim().isEmpty
-              ? Center(
-                  child: Text(
-                      "Please search for a book",
-                      style: const TextStyle(
-                        fontSize: 20,
-                      )),
-                )
-              : !_catalogReady
-                  ? const Center(child: CircularProgressIndicator())
-                  : Center(
-                      child: Text(
+        // Only a completed tap counts as an outside tap. A pointer-down
+        // listener here would also intercept the start of Android's edge Back.
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _hideKeyboardFromBodyTap,
+          child: searchResults.isEmpty
+              ? (_enterVisibleQuery.value ?? _searchController.text)
+                        .trim()
+                        .isEmpty
+                    ? Center(
+                        child: Text(
+                          "Please search for a book",
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      )
+                    : !_catalogReady
+                    ? const Center(child: CircularProgressIndicator())
+                    : Center(
+                        child: Text(
                           "No results found",
-                          style: const TextStyle(fontSize: 20)),
-                    )
-          : GridView.builder(
-              controller: _resultsScrollController,
-              padding: EdgeInsets.fromLTRB(
-                10,
-                MediaQuery.of(context).padding.top + 48 + 8,
-                10,
-                8,
-              ),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 8,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.62,
-              ),
-              itemCount: searchResults.length,
-              itemBuilder: (context, i) {
-                final entry = searchResults[i];
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: KuroStyleBookCard(
-                        entry: entry,
-                        onEntryTapped: (coverRect) =>
-                            _openResult(entry, coverRect),
-                        onEntryLongPressed: () => _openVolumeActions(entry),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      entry.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w500,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      )
+              : GridView.builder(
+                  controller: _resultsScrollController,
+                  padding: EdgeInsets.fromLTRB(
+                    10,
+                    MediaQuery.of(context).padding.top + 48 + 8,
+                    10,
+                    8,
+                  ),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.62,
+                  ),
+                  itemCount: searchResults.length,
+                  itemBuilder: (context, i) {
+                    final entry = searchResults[i];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: KuroStyleBookCard(
+                            entry: entry,
+                            onEntryTapped: (coverRect) =>
+                                _openResult(entry, coverRect),
+                            onEntryLongPressed: () => _openVolumeActions(entry),
                           ),
-                    ),
-                  ],
-                );
-              },
-              ),
-      ),
-    ),  // Scaffold
-    );  // PopScope
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          entry.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(fontWeight: FontWeight.w500),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+        ),
+      ), // Scaffold
+    ); // PopScope
   }
 
   void getSearchResults(String searchQuery) {
@@ -427,8 +438,14 @@ class _SearchScreenState extends State<SearchScreen> {
   static final RegExp _titleParts = RegExp(r'\d+|\D+');
 
   int _naturalTitleCompare(String a, String b) {
-    final aParts = _titleParts.allMatches(a.toLowerCase()).map((m) => m.group(0)!).toList();
-    final bParts = _titleParts.allMatches(b.toLowerCase()).map((m) => m.group(0)!).toList();
+    final aParts = _titleParts
+        .allMatches(a.toLowerCase())
+        .map((m) => m.group(0)!)
+        .toList();
+    final bParts = _titleParts
+        .allMatches(b.toLowerCase())
+        .map((m) => m.group(0)!)
+        .toList();
     final count = min(aParts.length, bParts.length);
     for (var i = 0; i < count; i++) {
       final left = aParts[i];

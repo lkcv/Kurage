@@ -30,7 +30,8 @@ List<Folder> visibleLibraryFolders(
     final members = <String>[];
     for (final id in folder.bookIds) {
       final entry = byEntryId[id];
-      if (entry != null && entry.type != EntryType.folder &&
+      if (entry != null &&
+          entry.type != EntryType.folder &&
           isSupportedEntry(entry)) {
         members.add(id);
         continue;
@@ -58,8 +59,7 @@ List<Folder> visibleLibraryFolders(
     )..isarId = folder.isarId;
     result.add(visible);
   }
-  result.sort((a, b) =>
-      a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+  result.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   return result;
 }
 
@@ -82,8 +82,10 @@ Future<(List<Entry>, List<Folder>)> getServerCategories({
   List<Folder> withoutLibraries(List<Folder> folders, List<Entry> books) =>
       visibleLibraryFolders(folders, books, excludedNames: libraryNames);
   final List<Folder> foldersTemp = await isar!.folders.where().findAll();
-  QueryBuilder<Entry, Entry, QAfterFilterCondition> typeNotBook =
-      isar.entrys.filter().not().typeEqualTo(EntryType.folder);
+  QueryBuilder<Entry, Entry, QAfterFilterCondition> typeNotBook = isar.entrys
+      .filter()
+      .not()
+      .typeEqualTo(EntryType.folder);
   List<Entry> booksTemp = await typeNotBook.sortByTitle().findAll();
   final hasCachedBooks = booksTemp.isNotEmpty;
   booksTemp = booksTemp.where(isSupportedEntry).toList();
@@ -95,8 +97,12 @@ Future<(List<Entry>, List<Folder>)> getServerCategories({
   }
 
   Map<String, String> headers = getHeaders(
-    url, session.client, session.device, session.deviceId,
-    session.version, session.token,
+    url,
+    session.client,
+    session.device,
+    session.deviceId,
+    session.version,
+    session.token,
   );
   final api = JellyfinApi(url);
   late final Response<Map<String, dynamic>> response;
@@ -148,14 +154,11 @@ Future<(List<Entry>, List<Folder>)> getServerCategories({
     // Only reconcile after every library returned a complete, successful GET.
     // A transiently empty UserViews response cannot wipe the local catalog.
     if (comicsIds.isNotEmpty) {
-      await reconcileMissingEntries(
-        serverIds,
-        api: api,
-        headers: headers,
-      );
+      await reconcileMissingEntries(serverIds, api: api, headers: headers);
     }
     comics = (await typeNotBook.sortByTitle().findAll())
-        .where(isSupportedEntry).toList();
+        .where(isSupportedEntry)
+        .toList();
     comics.sort((a, b) => a.title.compareTo(b.title));
 
     logger.d("comics: ${comics.length}");
@@ -172,7 +175,9 @@ Future<(List<Entry>, List<Folder>)> getServerCategories({
     libraryNames = categoriesList;
     await CreateFolders.getFolders(categoriesList);
     List<Folder> folders = withoutLibraries(
-        await isar.folders.where().findAll(), comics);
+      await isar.folders.where().findAll(),
+      comics,
+    );
     return (comics, folders);
   }
 }
@@ -204,7 +209,8 @@ Future<List<Map<String, dynamic>>> compareFolders(
 
 // function to remove entries from the database that are not in the server
 Future<void> removeEntriesFromDatabase(
-    List<Future<List<Map<String, dynamic>>>> comicsArray) async {
+  List<Future<List<Map<String, dynamic>>>> comicsArray,
+) async {
   // now see if the database has any entries that are not in the server
   // if it does, remove those from the database
 

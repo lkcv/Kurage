@@ -95,7 +95,10 @@ class ReaderPrefilterCache extends ChangeNotifier {
       _width = width;
       _height = height;
     }
-    final nextWanted = indices.where((index) => index > 0).take(_maxPages).toList();
+    final nextWanted = indices
+        .where((index) => index > 0)
+        .take(_maxPages)
+        .toList();
     final windowChanged = !listEquals(_wanted, nextWanted);
     final pageChanged = _currentIndex != currentIndex;
     if (windowChanged || pageChanged || _readingStep != readingStep) {
@@ -173,8 +176,7 @@ class ReaderPrefilterCache extends ChangeNotifier {
       }
       _tapRetryTimer?.cancel();
       _tapRetryTimer = null;
-      _nextTapResizeMs = _tapClock.elapsedMilliseconds +
-          _tapResizeIntervalMs;
+      _nextTapResizeMs = _tapClock.elapsedMilliseconds + _tapResizeIntervalMs;
     }
     final index = selected;
     final generation = _generation;
@@ -185,8 +187,8 @@ class ReaderPrefilterCache extends ChangeNotifier {
     _running = true;
 
     bool canContinue() {
-      final blocked = _hardPaused &&
-          !(tapJob && _tapActive && _allowTapFinishDuringTouch);
+      final blocked =
+          _hardPaused && !(tapJob && _tapActive && _allowTapFinishDuringTouch);
       return !_closed &&
           !blocked &&
           generation == _generation &&
@@ -237,12 +239,14 @@ class ReaderPrefilterCache extends ChangeNotifier {
       }
     }
 
-    work().catchError((Object error, StackTrace stack) {
-      debugPrint('Reader resize p${index + 1}: $error');
-    }).whenComplete(() {
-      _running = false;
-      _pump();
-    });
+    work()
+        .catchError((Object error, StackTrace stack) {
+          debugPrint('Reader resize p${index + 1}: $error');
+        })
+        .whenComplete(() {
+          _running = false;
+          _pump();
+        });
   }
 
   void _releasePage(int index) {
@@ -269,16 +273,15 @@ class ReaderPrefilterCache extends ChangeNotifier {
       return true;
     }
     if (_ready.isEmpty) return true;
-    final lowest = _ready.keys
-        .map(_priority)
-        .reduce((a, b) => a < b ? a : b);
+    final lowest = _ready.keys.map(_priority).reduce((a, b) => a < b ? a : b);
     return _priority(index) > lowest;
   }
 
   void _trimReady() {
     while (_ready.length > _maxPages || _retainedBytes > _maxDecodedBytes) {
-      final victim = _ready.keys.reduce((a, b) =>
-          _priority(a) <= _priority(b) ? a : b);
+      final victim = _ready.keys.reduce(
+        (a, b) => _priority(a) <= _priority(b) ? a : b,
+      );
       _releasePage(victim);
     }
   }

@@ -37,14 +37,19 @@ class CollectionPagePrefetcher {
 
   bool schedule(List<Entry> entries, int first, int end) {
     final visible = entries.sublist(first, end);
-    final key = visible.map((entry) =>
-        '${entry.id}:${entry.pageNum}:${entry.downloaded}').join('|');
+    final key = visible
+        .map((entry) => '${entry.id}:${entry.pageNum}:${entry.downloaded}')
+        .join('|');
     if (_windowKey == key) return hasWork;
 
     stop();
     _windowKey = key;
-    _entries = visible.where((entry) =>
-        !entry.downloaded && entryFileExtension(entry.path) == 'cbz').toList();
+    _entries = visible
+        .where(
+          (entry) =>
+              !entry.downloaded && entryFileExtension(entry.path) == 'cbz',
+        )
+        .toList();
     if (_entries.isEmpty || _completedKey == key) return false;
     _arm(_generation);
     return true;
@@ -75,12 +80,13 @@ class CollectionPagePrefetcher {
   }
 
   bool _valid(int generation) =>
-      !_disposed && generation == _generation &&
-      _windowKey != null && allowed();
+      !_disposed &&
+      generation == _generation &&
+      _windowKey != null &&
+      allowed();
 
   bool _canFetch(int generation) =>
-      _valid(generation) && !busy() &&
-      DownloadQueue.instance.pendingCount == 0;
+      _valid(generation) && !busy() && DownloadQueue.instance.pendingCount == 0;
 
   Future<void> _run(int generation) async {
     _running = true;
@@ -102,7 +108,7 @@ class CollectionPagePrefetcher {
           final requestedPage = pass == 0
               ? 0
               : (await ReaderPageCache.getCurrentPage(entry.id) ??
-                  entry.pageNum);
+                    entry.pageNum);
           if (pass == 1 && requestedPage <= 0) continue;
           if (await ReaderPageCache.getPage(entry.id, requestedPage) != null) {
             continue;
@@ -115,8 +121,9 @@ class CollectionPagePrefetcher {
           try {
             final temp = await getTemporaryDirectory();
             if (!_canFetch(generation)) return;
-            directory = await Directory(temp.path)
-                .createTemp('kurage_page_prefetch_');
+            directory = await Directory(
+              temp.path,
+            ).createTemp('kurage_page_prefetch_');
             final stream = CbzStream(
               url: server,
               itemId: entry.id,
@@ -126,7 +133,9 @@ class CollectionPagePrefetcher {
             );
             await stream.init();
             if (!_canFetch(generation)) return;
-            final pageIndex = requestedPage.clamp(0, stream.pageCount - 1).toInt();
+            final pageIndex = requestedPage
+                .clamp(0, stream.pageCount - 1)
+                .toInt();
             if (await ReaderPageCache.getPage(entry.id, pageIndex) != null) {
               continue;
             }

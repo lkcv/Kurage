@@ -57,7 +57,8 @@ class LoginProvider {
       if (decoded is! Map<String, dynamic>) return null;
       final user = decoded['User'];
       final token = decoded['AccessToken'];
-      if (token is! String || token.isEmpty ||
+      if (token is! String ||
+          token.isEmpty ||
           user is! Map<String, dynamic> ||
           user['Id'] is! String ||
           (user['Id'] as String).isEmpty) {
@@ -124,7 +125,9 @@ class LoginProvider {
     String password,
   ) async {
     try {
-      String requestUrl = url.endsWith("/") ? url.substring(0, url.length - 1) : url;
+      String requestUrl = url.endsWith("/")
+          ? url.substring(0, url.length - 1)
+          : url;
       const client = "Kurage";
       String device = "Unknown Device";
       String deviceId = "Unknown Device id";
@@ -163,7 +166,8 @@ class LoginProvider {
         return LoginResult.success;
       }
       if (response.statusCode == 400 ||
-          response.statusCode == 401 || response.statusCode == 403) {
+          response.statusCode == 401 ||
+          response.statusCode == 403) {
         return LoginResult.rejected;
       }
       return LoginResult.unreachable;
@@ -242,7 +246,9 @@ class LoginProvider {
       );
       return "true";
     } on DioException catch (e) {
-      logger.w('Login network failure (${e.type}, HTTP ${e.response?.statusCode})');
+      logger.w(
+        'Login network failure (${e.type}, HTTP ${e.response?.statusCode})',
+      );
       return _dioLoginError(e);
     } catch (e) {
       logger.e('Unexpected login failure (${e.runtimeType})');

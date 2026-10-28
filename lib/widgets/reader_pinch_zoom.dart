@@ -8,11 +8,7 @@ import 'package:flutter/scheduler.dart';
 /// *above* PageView, so a second finger can be detected even if the first
 /// finger is already dragging a different page.
 class ReaderPinchZoom extends StatefulWidget {
-  const ReaderPinchZoom({
-    super.key,
-    required this.child,
-    this.scaleNotifier,
-  });
+  const ReaderPinchZoom({super.key, required this.child, this.scaleNotifier});
 
   final Widget child;
   final ValueNotifier<double>? scaleNotifier;
@@ -148,10 +144,10 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
 
     // Stop once both axes have slowed down or reached their hard limits.
     final matrix = _transform.value;
-    final xDone = horizontal.isDone(time) ||
-        (matrix.storage[12] - next.dx).abs() > 0.01;
-    final yDone = vertical.isDone(time) ||
-        (matrix.storage[13] - next.dy).abs() > 0.01;
+    final xDone =
+        horizontal.isDone(time) || (matrix.storage[12] - next.dx).abs() > 0.01;
+    final yDone =
+        vertical.isDone(time) || (matrix.storage[13] - next.dy).abs() > 0.01;
     if (xDone && yDone) stopInertia();
   }
 

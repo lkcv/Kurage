@@ -14,12 +14,14 @@ class FloatingSurfacePalette {
   static const double snackBarOpacity = 0.94;
 
   static Color topBarBackground(Brightness brightness) =>
-      (brightness == Brightness.dark ? Colors.black : lightBase)
-          .withValues(alpha: topBarOpacity);
+      (brightness == Brightness.dark ? Colors.black : lightBase).withValues(
+        alpha: topBarOpacity,
+      );
 
   static Color snackBarBackground(Brightness brightness) =>
-      (brightness == Brightness.dark ? darkSnackBarBase : lightBase)
-          .withValues(alpha: snackBarOpacity);
+      (brightness == Brightness.dark ? darkSnackBarBase : lightBase).withValues(
+        alpha: snackBarOpacity,
+      );
 
   static Color foreground(Brightness brightness) =>
       brightness == Brightness.dark ? darkText : lightText;
@@ -32,9 +34,7 @@ ThemeData darkTheme = ThemeData(
   scaffoldBackgroundColor: Color(0xFF121212),
   cardColor: Color(0xFF1E1E1E),
   popupMenuTheme: PopupMenuThemeData(
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12.0),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
     color: Colors.grey[800],
   ),
   textTheme: TextTheme(
@@ -58,9 +58,7 @@ ThemeData lightTheme = ThemeData(
   scaffoldBackgroundColor: Colors.white,
   cardColor: Color(0xFFFAFAFA),
   popupMenuTheme: PopupMenuThemeData(
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12.0),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
     color: Colors.grey[200],
   ),
 );
@@ -72,9 +70,7 @@ ThemeData oled = ThemeData(
   scaffoldBackgroundColor: Colors.black,
   cardColor: Colors.black,
   popupMenuTheme: PopupMenuThemeData(
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(12.0),
-    ),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
     color: Colors.grey[900],
   ),
   textTheme: TextTheme(
@@ -93,21 +89,9 @@ ThemeData oled = ThemeData(
       fontSize: 12,
       fontWeight: FontWeight.bold,
     ),
-    bodyLarge: const TextStyle(
-      color: Colors.white,
-      fontSize: 14,
-    ),
-    bodyMedium: const TextStyle(
-      color: Colors.white,
-      fontSize: 12,
-    ),
-    labelMedium: const TextStyle(
-      color: Colors.white,
-      fontSize: 10,
-    ),
-    labelSmall: const TextStyle(
-      color: Colors.white,
-      fontSize: 8,
-    ),
+    bodyLarge: const TextStyle(color: Colors.white, fontSize: 14),
+    bodyMedium: const TextStyle(color: Colors.white, fontSize: 12),
+    labelMedium: const TextStyle(color: Colors.white, fontSize: 10),
+    labelSmall: const TextStyle(color: Colors.white, fontSize: 8),
   ),
 );

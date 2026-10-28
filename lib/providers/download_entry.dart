@@ -31,14 +31,18 @@ Future<double> retainedPageDownloadProgress(Entry entry) async {
     final count = saved['pageCount'];
     if (count is! int || count <= 0) return 0;
     final savedSizes = saved['pageSizes'];
-    final sizes = savedSizes is List && savedSizes.length == count &&
+    final sizes =
+        savedSizes is List &&
+            savedSizes.length == count &&
             savedSizes.every((size) => size is int && size >= 0)
         ? savedSizes.cast<int>()
         : <int>[];
     final totalBytes = sizes.fold<int>(0, (sum, size) => sum + size);
     final completed = <int>{};
-    final pageFile = RegExp(r'^(\d{6,})\.(jpg|jpeg|png|gif|webp|bmp|tiff)$',
-        caseSensitive: false);
+    final pageFile = RegExp(
+      r'^(\d{6,})\.(jpg|jpeg|png|gif|webp|bmp|tiff)$',
+      caseSensitive: false,
+    );
     await for (final item in staging.list()) {
       if (item is! File) continue;
       final match = pageFile.firstMatch(item.uri.pathSegments.last);
@@ -49,7 +53,8 @@ Future<double> retainedPageDownloadProgress(Entry entry) async {
       completed.add(index);
     }
     final fraction = totalBytes > 0
-        ? completed.fold<int>(0, (sum, index) => sum + sizes[index]) / totalBytes
+        ? completed.fold<int>(0, (sum, index) => sum + sizes[index]) /
+              totalBytes
         : completed.length / count;
     return (fraction * 100).clamp(0.0, 99.0).toDouble();
   } catch (_) {
@@ -81,7 +86,9 @@ Future<Entry> downloadEntry(
   }
   final isar = Isar.getInstance();
   if (isar == null) throw StateError('Isar not initialized');
-  if (entry.downloaded && entry.folderPath.isNotEmpty && !forceDownload &&
+  if (entry.downloaded &&
+      entry.folderPath.isNotEmpty &&
+      !forceDownload &&
       await Directory(entry.folderPath).exists()) {
     onProgress(100);
     return entry;
@@ -122,17 +129,22 @@ Future<Entry> downloadEntry(
       'pageCount': count,
       'fingerprint': stream.fingerprint,
     };
-    final completedMarker = File('${finalDirectory.path}/.kurage-complete.json');
+    final completedMarker = File(
+      '${finalDirectory.path}/.kurage-complete.json',
+    );
     if (!originalDownloaded && await completedMarker.exists()) {
       try {
         final saved = jsonDecode(await completedMarker.readAsString());
-        if (saved is Map && saved['itemId'] == entry.id &&
+        if (saved is Map &&
+            saved['itemId'] == entry.id &&
             saved['pageCount'] == count &&
             saved['fingerprint'] == stream.fingerprint) {
           var valid = true;
           for (var index = 0; index < count; index++) {
-            final file = File('${finalDirectory.path}/'
-                '${stream.pageFile(index).uri.pathSegments.last}');
+            final file = File(
+              '${finalDirectory.path}/'
+              '${stream.pageFile(index).uri.pathSegments.last}',
+            );
             if (!await stream.isPageValid(index, file)) {
               valid = false;
               break;
@@ -159,7 +171,9 @@ Future<Entry> downloadEntry(
     if (await manifest.exists()) {
       try {
         final saved = jsonDecode(await manifest.readAsString());
-        reuse = saved is Map && saved['itemId'] == entry.id &&
+        reuse =
+            saved is Map &&
+            saved['itemId'] == entry.id &&
             saved['pageCount'] == count &&
             saved['fingerprint'] == stream.fingerprint;
       } catch (_) {}
@@ -169,7 +183,9 @@ Future<Entry> downloadEntry(
     }
     await staging.create(recursive: true);
     await manifest.writeAsString(
-        jsonEncode({...identity, 'pageSizes': pageSizes}), flush: true);
+      jsonEncode({...identity, 'pageSizes': pageSizes}),
+      flush: true,
+    );
 
     final completed = <int>{};
     var completedBytes = 0;
@@ -206,6 +222,7 @@ Future<Entry> downloadEntry(
           : (completed.length + pendingCachedCount) / count;
       onProgress((fraction * 100).clamp(0.0, 99.0).toDouble());
     }
+
     report();
 
     Future<void> copyCachedPages() async {
@@ -256,12 +273,14 @@ Future<Entry> downloadEntry(
     checkDownloadCanceled(cancelToken);
 
     final names = [
-      for (var index = 0; index < count; index++) stream.pageName(index) ?? ''
+      for (var index = 0; index < count; index++) stream.pageName(index) ?? '',
     ];
-    await File('${staging.path}/.kurage-page-names.json')
-        .writeAsString(jsonEncode(names), flush: true);
-    await File('${staging.path}/.kurage-complete.json')
-        .writeAsString(jsonEncode(identity), flush: true);
+    await File(
+      '${staging.path}/.kurage-page-names.json',
+    ).writeAsString(jsonEncode(names), flush: true);
+    await File(
+      '${staging.path}/.kurage-complete.json',
+    ).writeAsString(jsonEncode(identity), flush: true);
     if (await manifest.exists()) await manifest.delete();
     checkDownloadCanceled(cancelToken);
 

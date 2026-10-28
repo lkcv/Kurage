@@ -76,9 +76,7 @@ class DownloadQueue extends ChangeNotifier {
     // Jellyfin's /System/Info/Public and authenticated /Users/Me checks
     // have succeeded. Wake only now, not when Android first sees Wi-Fi.
     _consecutiveInterruptions = 0;
-    _recentReconnectUntil = DateTime.now().add(
-      const Duration(seconds: 30),
-    );
+    _recentReconnectUntil = DateTime.now().add(const Duration(seconds: 30));
     _quickReconnectRetryAvailable = true;
     _retryTimer?.cancel();
     _retryTimer = null;
@@ -146,8 +144,10 @@ class DownloadQueue extends ChangeNotifier {
       final shift = (_consecutiveInterruptions++).clamp(0, 4).toInt();
       seconds = (5 * (1 << shift)).clamp(5, 60).toInt();
     }
-    debugPrint('DownloadQueue: retrying waiting download in ${seconds}s'
-        '${quickReconnect ? ' (reconnect grace)' : ''}');
+    debugPrint(
+      'DownloadQueue: retrying waiting download in ${seconds}s'
+      '${quickReconnect ? ' (reconnect grace)' : ''}',
+    );
     _retryTimer = Timer(Duration(seconds: seconds), _wakeWaitingJobs);
   }
 
@@ -285,36 +285,42 @@ class DownloadQueue extends ChangeNotifier {
           job.state == DownloadJobState.downloading ||
           _isWaiting(job.state) ||
           job.state == DownloadJobState.failed) {
-        snapshot.add(DownloadQueueRecord(
-          entryId: job.id,
-          position: snapshot.length,
-          state: job.state.name,
-        ));
+        snapshot.add(
+          DownloadQueueRecord(
+            entryId: job.id,
+            position: snapshot.length,
+            state: job.state.name,
+          ),
+        );
       }
     }
-    _persistenceTail = _persistenceTail.then((_) async {
-      final isar = Isar.getInstance();
-      if (isar == null) throw StateError('Database unavailable');
-      await isar.writeTxn(() async {
-        await isar.downloadQueueRecords.clear();
-        if (snapshot.isNotEmpty) {
-          await isar.downloadQueueRecords.putAll(snapshot);
-        }
-      });
-    }).catchError((Object error) {
-      debugPrint('DownloadQueue: could not persist queue: $error');
-    });
+    _persistenceTail = _persistenceTail
+        .then((_) async {
+          final isar = Isar.getInstance();
+          if (isar == null) throw StateError('Database unavailable');
+          await isar.writeTxn(() async {
+            await isar.downloadQueueRecords.clear();
+            if (snapshot.isNotEmpty) {
+              await isar.downloadQueueRecords.putAll(snapshot);
+            }
+          });
+        })
+        .catchError((Object error) {
+          debugPrint('DownloadQueue: could not persist queue: $error');
+        });
     return _persistenceTail;
   }
 
   ValueListenable<int> get headerChanges => _headerChanges;
   UnmodifiableListView<DownloadJob> get jobs => UnmodifiableListView(_jobs);
   int get pendingCount => _jobs
-      .where((job) =>
-          job.state == DownloadJobState.queued ||
-          job.state == DownloadJobState.downloading ||
-          job.state == DownloadJobState.canceling ||
-          _isWaiting(job.state))
+      .where(
+        (job) =>
+            job.state == DownloadJobState.queued ||
+            job.state == DownloadJobState.downloading ||
+            job.state == DownloadJobState.canceling ||
+            _isWaiting(job.state),
+      )
       .length;
   int get failedCount =>
       _jobs.where((job) => job.state == DownloadJobState.failed).length;
@@ -407,7 +413,8 @@ class DownloadQueue extends ChangeNotifier {
 
   void dismissFailure(String id) {
     _jobs.removeWhere(
-        (job) => job.id == id && job.state == DownloadJobState.failed);
+      (job) => job.id == id && job.state == DownloadJobState.failed,
+    );
     _changed();
   }
 
@@ -493,12 +500,15 @@ class DownloadQueue extends ChangeNotifier {
           job.error = error;
           if (_recoverable(error)) {
             job.state = await _waitingState();
-            debugPrint('DownloadQueue: ${job.id} interrupted ($error), '
-                'waiting as ${job.state.name}');
+            debugPrint(
+              'DownloadQueue: ${job.id} interrupted ($error), '
+              'waiting as ${job.state.name}',
+            );
             // Keep completed pages and their persisted progress.
             // No immediate requeue: only a connectivity event or timer wakes it.
             _changed();
-            final quickReconnect = _quickReconnectRetryAvailable &&
+            final quickReconnect =
+                _quickReconnectRetryAvailable &&
                 _recentReconnectUntil != null &&
                 DateTime.now().isBefore(_recentReconnectUntil!) &&
                 job.state != DownloadJobState.waitingForNetwork;

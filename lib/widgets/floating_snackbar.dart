@@ -8,8 +8,9 @@ SnackBarThemeData floatingSnackBarTheme(ThemeData theme) {
 
   return SnackBarThemeData(
     behavior: SnackBarBehavior.floating,
-    backgroundColor:
-        FloatingSurfacePalette.snackBarBackground(theme.brightness),
+    backgroundColor: FloatingSurfacePalette.snackBarBackground(
+      theme.brightness,
+    ),
     contentTextStyle: (theme.textTheme.bodyMedium ?? const TextStyle())
         .copyWith(color: foreground),
     actionTextColor: theme.colorScheme.primary,

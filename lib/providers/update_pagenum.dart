@@ -71,9 +71,12 @@ class _JellyfinProgressQueue {
   // upload acknowledgement.
   Future<void> _mutate(Future<void> Function() action) {
     final operation = _mutations.then((_) => action());
-    _mutations = operation.then<void>((_) {}, onError: (Object e, StackTrace st) {
-      logger.e('Progress queue storage error: $e');
-    });
+    _mutations = operation.then<void>(
+      (_) {},
+      onError: (Object e, StackTrace st) {
+        logger.e('Progress queue storage error: $e');
+      },
+    );
     return operation;
   }
 
@@ -93,12 +96,18 @@ class _JellyfinProgressQueue {
     records.sort((a, b) => a.position.compareTo(b.position));
     final saved = <_ProgressKey, int>{};
     for (final record in records) {
-      if (record.server.isEmpty || record.userId.isEmpty ||
-          record.itemId.isEmpty || record.pageIndex < 0) {
+      if (record.server.isEmpty ||
+          record.userId.isEmpty ||
+          record.itemId.isEmpty ||
+          record.pageIndex < 0) {
         continue;
       }
-      saved[(server: record.server, userId: record.userId,
-          itemId: record.itemId)] = record.pageIndex;
+      saved[(
+            server: record.server,
+            userId: record.userId,
+            itemId: record.itemId,
+          )] =
+          record.pageIndex;
     }
 
     _pending.addAll(saved);
@@ -109,13 +118,15 @@ class _JellyfinProgressQueue {
     if (isar == null) throw StateError('Database unavailable');
     final records = <PendingProgressRecord>[];
     for (final entry in snapshot.entries) {
-      records.add(PendingProgressRecord(
-        server: entry.key.server,
-        userId: entry.key.userId,
-        itemId: entry.key.itemId,
-        pageIndex: entry.value,
-        position: records.length,
-      ));
+      records.add(
+        PendingProgressRecord(
+          server: entry.key.server,
+          userId: entry.key.userId,
+          itemId: entry.key.itemId,
+          pageIndex: entry.value,
+          position: records.length,
+        ),
+      );
     }
     await isar.writeTxn(() async {
       await isar.pendingProgressRecords.clear();
@@ -128,24 +139,24 @@ class _JellyfinProgressQueue {
   Future<void> _persist() => _persistSnapshot(_pending);
 
   Future<void> enqueue(String id, int pageIndex) => _mutate(() async {
-        await _ensureLoaded();
-        final session = SessionStore.current;
-        final server = session.server.replaceFirst(RegExp(r'/+$'), '');
-        final userId = session.userId;
-        if (server.isEmpty || userId.isEmpty || id.isEmpty || pageIndex < 0) {
-          logger.w('Progress not queued: missing account/item or invalid page');
-          return;
-        }
-        // Never sync an old account's saved progress to a new account.
-        _pending[(server: server, userId: userId, itemId: id)] = pageIndex;
-        await _persist();
-        _start();
-      });
+    await _ensureLoaded();
+    final session = SessionStore.current;
+    final server = session.server.replaceFirst(RegExp(r'/+$'), '');
+    final userId = session.userId;
+    if (server.isEmpty || userId.isEmpty || id.isEmpty || pageIndex < 0) {
+      logger.w('Progress not queued: missing account/item or invalid page');
+      return;
+    }
+    // Never sync an old account's saved progress to a new account.
+    _pending[(server: server, userId: userId, itemId: id)] = pageIndex;
+    await _persist();
+    _start();
+  });
 
   Future<void> retry() => _mutate(() async {
-        await _ensureLoaded();
-        _start();
-      });
+    await _ensureLoaded();
+    _start();
+  });
 
   void _start() {
     if (_sending || _pending.isEmpty) return;
@@ -199,12 +210,17 @@ class _JellyfinProgressQueue {
   }
 
   Future<void> _report(
-      String server, String token, String itemId, int pageIndex) async {
+    String server,
+    String token,
+    String itemId,
+    int pageIndex,
+  ) async {
     final version = (await p_info.PackageInfo.fromPlatform()).version;
     final headers = <String, String>{
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': 'MediaBrowser Client="Kurage", '
+      'Authorization':
+          'MediaBrowser Client="Kurage", '
           'Device="Unknown Device", DeviceId="Unknown Device id", '
           'Version="$version", Token="$token"',
     };

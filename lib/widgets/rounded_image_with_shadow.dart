@@ -42,11 +42,11 @@ class _RoundedImageWithShadowState extends State<RoundedImageWithShadow> {
   }
 
   Widget _fallback() => Image.asset(
-        widget.errorWidgetAsset,
-        fit: BoxFit.cover,
-        width: imageSize?.width,
-        height: imageSize?.height,
-      );
+    widget.errorWidgetAsset,
+    fit: BoxFit.cover,
+    width: imageSize?.width,
+    height: imageSize?.height,
+  );
 
   @override
   Widget build(BuildContext context) {

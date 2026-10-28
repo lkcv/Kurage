@@ -33,7 +33,7 @@ class CollectionCoverPrewarmer {
   int _generation = 0;
 
   final Map<String, ({ImageStream stream, ImageStreamListener listener})>
-      _pinnedCovers = {};
+  _pinnedCovers = {};
   final Set<String> _failedCovers = {};
   final Set<String> _revalidateCovers = {};
   double? _previousScrollOffset;
@@ -69,8 +69,11 @@ class CollectionCoverPrewarmer {
   }
 
   bool _canWarm(int generation) =>
-      !_disposed && isActive() && !_paused &&
-      generation == _generation && isCurrentRoute();
+      !_disposed &&
+      isActive() &&
+      !_paused &&
+      generation == _generation &&
+      isCurrentRoute();
 
   void pause() {
     _paused = true;
@@ -119,8 +122,7 @@ class CollectionCoverPrewarmer {
     void add(int index) {
       if (index < 0 || index >= covers.length) return;
       final path = covers[index];
-      if (path.isNotEmpty && path.toLowerCase() != 'asset' &&
-          seen.add(path)) {
+      if (path.isNotEmpty && path.toLowerCase() != 'asset' && seen.add(path)) {
         paths.add(path);
       }
     }
@@ -129,17 +131,33 @@ class CollectionCoverPrewarmer {
       add(i);
     }
     if (_scrollDirection >= 0) {
-      for (var i = visible.end; i < math.min(covers.length, visible.end + ahead); i++) {
+      for (
+        var i = visible.end;
+        i < math.min(covers.length, visible.end + ahead);
+        i++
+      ) {
         add(i);
       }
-      for (var i = visible.first - 1; i >= math.max(0, visible.first - behind); i--) {
+      for (
+        var i = visible.first - 1;
+        i >= math.max(0, visible.first - behind);
+        i--
+      ) {
         add(i);
       }
     } else {
-      for (var i = visible.first - 1; i >= math.max(0, visible.first - ahead); i--) {
+      for (
+        var i = visible.first - 1;
+        i >= math.max(0, visible.first - ahead);
+        i--
+      ) {
         add(i);
       }
-      for (var i = visible.end; i < math.min(covers.length, visible.end + behind); i++) {
+      for (
+        var i = visible.end;
+        i < math.min(covers.length, visible.end + behind);
+        i++
+      ) {
         add(i);
       }
     }
@@ -152,8 +170,11 @@ class CollectionCoverPrewarmer {
     _revalidateCovers.remove(path);
   }
 
-  Future<void> _pinCover(String path, int generation,
-      {Duration timeout = const Duration(seconds: 4)}) async {
+  Future<void> _pinCover(
+    String path,
+    int generation, {
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
     if (!_canWarm(generation) || _failedCovers.contains(path)) return;
     final previous = _pinnedCovers[path];
     if (previous != null && !_revalidateCovers.contains(path)) return;
@@ -184,10 +205,11 @@ class CollectionCoverPrewarmer {
     } catch (_) {
       loaded = false;
     }
-    if (!loaded || !_canWarm(generation) ||
+    if (!loaded ||
+        !_canWarm(generation) ||
         (_initialReady &&
-            !(_covers == null ? <String>[] :
-                _prioritizedCovers(_covers!)).contains(path))) {
+            !(_covers == null ? <String>[] : _prioritizedCovers(_covers!))
+                .contains(path))) {
       stream.removeListener(listener);
       if (!loaded) _failedCovers.add(path);
       return;
@@ -210,11 +232,14 @@ class CollectionCoverPrewarmer {
       if (!_initialReady) {
         final paths = _prioritizedCovers(covers);
         final visible = visibleRange(covers.length);
-        final initialCount = math.min(paths.length, <String>{
-          for (var i = visible.first; i < visible.end; i++)
-            if (covers[i].isNotEmpty && covers[i].toLowerCase() != 'asset')
-              covers[i],
-        }.length);
+        final initialCount = math.min(
+          paths.length,
+          <String>{
+            for (var i = visible.first; i < visible.end; i++)
+              if (covers[i].isNotEmpty && covers[i].toLowerCase() != 'asset')
+                covers[i],
+          }.length,
+        );
         final deadline = DateTime.now().add(const Duration(seconds: 6));
         for (var i = 0; i < initialCount && _canWarm(generation); i += 2) {
           final remaining = deadline.difference(DateTime.now());
@@ -236,10 +261,15 @@ class CollectionCoverPrewarmer {
           for (final path in _pinnedCovers.keys.toList()) {
             if (!wanted.contains(path)) _releaseCoverPin(path);
           }
-          final pending = desired.where((path) =>
-              !_failedCovers.contains(path) &&
-              (!_pinnedCovers.containsKey(path) ||
-                  _revalidateCovers.contains(path))).take(2).toList();
+          final pending = desired
+              .where(
+                (path) =>
+                    !_failedCovers.contains(path) &&
+                    (!_pinnedCovers.containsKey(path) ||
+                        _revalidateCovers.contains(path)),
+              )
+              .take(2)
+              .toList();
           if (pending.isEmpty) break;
           await Future.wait([
             for (final path in pending) _pinCover(path, generation),
@@ -248,7 +278,8 @@ class CollectionCoverPrewarmer {
         }
       }
     } catch (error) {
-      if (!_initialReady && _canWarm(generation) &&
+      if (!_initialReady &&
+          _canWarm(generation) &&
           identical(covers, _covers)) {
         _initialReady = true;
         onInitialReady();

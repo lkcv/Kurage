@@ -100,7 +100,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Watch the ConnectionManager from the provider
     final connectionManager = Provider.of<ConnectionManager>(context);
     final accent = context.watch<ThemeChangeNotifier>().accentColor;
-    final gradientEnd = AccentPalette.forColor(accent)?.gradientEnd ??
+    final gradientEnd =
+        AccentPalette.forColor(accent)?.gradientEnd ??
         AccentPalette.defaultGradientEnd;
 
     // If auth failed, redirect to login
@@ -134,11 +135,14 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: Container(
         // Reserve space beneath the bar for the keyboard so GNav stays
         // visible and tappable directly above it.
-        margin: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
         height: 70 + iosBottomInset,
         padding: EdgeInsets.only(bottom: iosBottomInset),
         decoration: BoxDecoration(
-          color: accent != null && Theme.of(context).brightness == Brightness.light
+          color:
+              accent != null && Theme.of(context).brightness == Brightness.light
               ? accent
               : Theme.of(context).primaryColor,
           borderRadius: const BorderRadius.only(
@@ -155,7 +159,11 @@ class _HomeScreenState extends State<HomeScreen> {
               child: IgnorePointer(
                 child: Padding(
                   padding: const EdgeInsets.only(
-                      left: 15.0, right: 15.0, top: 8, bottom: 15),
+                    left: 15.0,
+                    right: 15.0,
+                    top: 8,
+                    bottom: 15,
+                  ),
                   child: GNav(
                     rippleColor: Theme.of(context).colorScheme.secondary,
                     hoverColor: Theme.of(context).colorScheme.secondary,
@@ -163,20 +171,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     tabBorderRadius: 15,
                     tabBackgroundGradient: LinearGradient(
                       colors: [
-                        (accent ?? ThemeChangeNotifier.defaultAccent).withValues(alpha: 0.75),
+                        (accent ?? ThemeChangeNotifier.defaultAccent)
+                            .withValues(alpha: 0.75),
                         gradientEnd.withValues(alpha: 0.75),
                       ],
                     ),
                     tabActiveBorder:
                         Theme.of(context).brightness == Brightness.dark
-                            ? Border.all(
-                                color: Colors.transparent, width: 0)
-                            : Border.all(color: Colors.white, width: 1),
+                        ? Border.all(color: Colors.transparent, width: 0)
+                        : Border.all(color: Colors.white, width: 1),
                     haptic: true,
                     iconSize: 24,
                     gap: 7,
-                    padding: EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 7),
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                     duration: _tabAnimationDuration,
                     tabBackgroundColor: Theme.of(context).primaryColor,
                     color: Colors.white,
@@ -185,14 +192,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.local_library_outlined,
                         text: "Library",
                       ),
-                      GButton(
-                        icon: Icons.search,
-                        text: "Search",
-                      ),
-                      GButton(
-                        icon: Icons.settings,
-                        text: "Settings",
-                      ),
+                      GButton(icon: Icons.search, text: "Search"),
+                      GButton(icon: Icons.settings, text: "Settings"),
                     ],
                     selectedIndex: _selectedIndex,
                     onTabChange: _onTabChange,
@@ -206,11 +207,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 for (var index = 0; index < 3; index++)
                   Expanded(
                     child: Semantics(
-                      label: [
-                        "Library",
-                        "Search",
-                        "Settings",
-                      ][index],
+                      label: ["Library", "Search", "Settings"][index],
                       button: true,
                       selected: _selectedIndex == index,
                       child: GestureDetector(

@@ -16,12 +16,19 @@ Logger logger = Logger(
           file: File("$localPath/kurage.log"),
           overrideExisting: false,
           encoding: utf8,
-          sink: IOSink(File("$localPath/kurage.log")
-              .openWrite(mode: FileMode.writeOnlyAppend, encoding: utf8)),
+          sink: IOSink(
+            File(
+              "$localPath/kurage.log",
+            ).openWrite(mode: FileMode.writeOnlyAppend, encoding: utf8),
+          ),
         ),
   level: Level.debug,
   printer: kDebugMode
-      ? PrettyPrinter(dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart, printEmojis: true, colors: true)
+      ? PrettyPrinter(
+          dateTimeFormat: DateTimeFormat.onlyTimeAndSinceStart,
+          printEmojis: true,
+          colors: true,
+        )
       : PrettyPrinter(
           methodCount: 5,
           errorMethodCount: 8,
@@ -44,10 +51,12 @@ class FileOutput extends LogOutput {
     this.encoding = utf8,
     IOSink? sink,
   }) {
-    this.sink = sink ??
+    this.sink =
+        sink ??
         file.openWrite(
-          mode:
-              overrideExisting ? FileMode.writeOnly : FileMode.writeOnlyAppend,
+          mode: overrideExisting
+              ? FileMode.writeOnly
+              : FileMode.writeOnlyAppend,
           encoding: encoding,
         );
   }

@@ -17,16 +17,20 @@ class _ZipEntry {
   final int method;
   final int crc;
 
-  const _ZipEntry(this.name, this.offset, this.compressedSize,
-      this.uncompressedSize, this.method, this.crc);
+  const _ZipEntry(
+    this.name,
+    this.offset,
+    this.compressedSize,
+    this.uncompressedSize,
+    this.method,
+    this.crc,
+  );
 }
 
 final _crcTable = List<int>.generate(256, (index) {
   var value = index;
   for (var bit = 0; bit < 8; bit++) {
-    value = (value & 1) == 1
-        ? (value >> 1) ^ 0xedb88320
-        : value >> 1;
+    value = (value & 1) == 1 ? (value >> 1) ^ 0xedb88320 : value >> 1;
   }
   return value;
 });
@@ -89,7 +93,9 @@ class CbzStream {
       throw RangeError.index(index, _pages);
     }
     final ext = _pages[index].name.split('.').last.toLowerCase();
-    return File('${_cacheDir.path}/${(index + 1).toString().padLeft(6, '0')}.$ext');
+    return File(
+      '${_cacheDir.path}/${(index + 1).toString().padLeft(6, '0')}.$ext',
+    );
   }
 
   Future<bool> isPageValid(int index, File file) {
@@ -110,10 +116,15 @@ class CbzStream {
     _cacheDir = pageDirectory ?? Directory('${temp.path}/cbz_stream_$itemId');
     await _cacheDir.create(recursive: true);
 
-    final first = await _api.getItemDownloadRange(
-      itemId: itemId, start: 0, end: 0, headers: headers,
-      cancelToken: cancelToken,
-    ).timeout(const Duration(seconds: 15));
+    final first = await _api
+        .getItemDownloadRange(
+          itemId: itemId,
+          start: 0,
+          end: 0,
+          headers: headers,
+          cancelToken: cancelToken,
+        )
+        .timeout(const Duration(seconds: 15));
     _checkRetryableStatus(first);
     final contentRange = first.headers.value('content-range');
     if (first.statusCode != 206 || contentRange == null) {
@@ -143,8 +154,10 @@ class CbzStream {
     final eocd = searchData.sublist(eocdOffset - searchStart);
     final cdSize = _u32(eocd, 12);
     final cdOffset = _u32(eocd, 16);
-    if (cdSize == 0xffffffff || cdOffset == 0xffffffff ||
-        cdOffset + cdSize > _totalSize || cdSize == 0) {
+    if (cdSize == 0xffffffff ||
+        cdOffset == 0xffffffff ||
+        cdOffset + cdSize > _totalSize ||
+        cdSize == 0) {
       throw const FormatException('Unsupported ZIP directory');
     }
     final cd = await _fetchRange(cdOffset, cdOffset + cdSize - 1);
@@ -172,13 +185,21 @@ class CbzStream {
       p = next;
       final isPage = exts.any((ext) => name.toLowerCase().endsWith(ext));
       if (!isPage) continue;
-      if ((flags & 1) != 0 || (method != 0 && method != 8) ||
-          compressed == 0xffffffff || uncompressed == 0xffffffff ||
+      if ((flags & 1) != 0 ||
+          (method != 0 && method != 8) ||
+          compressed == 0xffffffff ||
+          uncompressed == 0xffffffff ||
           offset == 0xffffffff) {
         throw const FormatException('Unsupported ZIP entry encoding');
       }
       final entry = _ZipEntry(
-          name, offset, compressed, uncompressed, method, crc);
+        name,
+        offset,
+        compressed,
+        uncompressed,
+        method,
+        crc,
+      );
       entries.add(entry);
     }
     if (entries.isEmpty) throw const FormatException('No CBZ pages found');
@@ -193,11 +214,14 @@ class CbzStream {
     }
     return _inflight.putIfAbsent(index, () {
       final request = _loadEntry(_pages[index], pageFile(index));
-      request.then<void>((_) {
-        _inflight.remove(index);
-      }, onError: (Object _, StackTrace _) {
-        _inflight.remove(index);
-      });
+      request.then<void>(
+        (_) {
+          _inflight.remove(index);
+        },
+        onError: (Object _, StackTrace _) {
+          _inflight.remove(index);
+        },
+      );
       return request;
     });
   }
@@ -212,7 +236,10 @@ class CbzStream {
       throw const FormatException('Invalid ZIP local header');
     }
     final dataStart = entry.offset + 30 + _u16(header, 26) + _u16(header, 28);
-    final compressed = await _fetchRange(dataStart, dataStart + entry.compressedSize - 1);
+    final compressed = await _fetchRange(
+      dataStart,
+      dataStart + entry.compressedSize - 1,
+    );
     final method = entry.method;
     final expectedSize = entry.uncompressedSize;
     final expectedCrc = entry.crc;
@@ -252,18 +279,26 @@ class CbzStream {
   Future<Uint8List> _fetchRange(int start, int end) async {
     _checkCanceled();
     if (end < start) throw const FormatException('Invalid ZIP byte range');
-    final response = await _api.getItemDownloadRange(
-      itemId: itemId, start: start, end: end, headers: headers,
-      cancelToken: cancelToken,
-    ).timeout(const Duration(seconds: 30));
+    final response = await _api
+        .getItemDownloadRange(
+          itemId: itemId,
+          start: start,
+          end: end,
+          headers: headers,
+          cancelToken: cancelToken,
+        )
+        .timeout(const Duration(seconds: 30));
     final range = response.headers.value('content-range');
     _checkRetryableStatus(response);
-    if (response.statusCode != 206 || range != 'bytes $start-$end/$_totalSize') {
+    if (response.statusCode != 206 ||
+        range != 'bytes $start-$end/$_totalSize') {
       throw const FormatException('Invalid ZIP byte-range response');
     }
     final bytes = response.data;
     if (bytes == null || bytes.length != end - start + 1) {
-      throw const InterruptedDownload('Connection closed during ZIP byte range');
+      throw const InterruptedDownload(
+        'Connection closed during ZIP byte range',
+      );
     }
     return bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
   }

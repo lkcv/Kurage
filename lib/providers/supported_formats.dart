@@ -1,9 +1,7 @@
 // One format policy for server discovery and all Isar-backed UI screens.
 import 'package:kurage/models/entry.dart';
 
-const supportedFileExtensions = <String>{
-  'cbz', 'zip',
-};
+const supportedFileExtensions = <String>{'cbz', 'zip'};
 
 String entryFileExtension(String path) {
   final clean = path.split(RegExp(r'[?#]')).first;

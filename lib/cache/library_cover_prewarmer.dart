@@ -32,15 +32,17 @@ class LibraryCoverPrewarmer {
   static const int _maxScrollCoverPins = 48;
   static const int _maxConcurrentScrollCoverLoads = 2;
 
-  final List<({ImageStream stream, ImageStreamListener listener,
-    Completer<void> ready})> _startupCoverPins = [];
+  final List<
+    ({ImageStream stream, ImageStreamListener listener, Completer<void> ready})
+  >
+  _startupCoverPins = [];
   final Map<String, ({ImageStream stream, ImageStreamListener listener})>
-      _scrollCoverPins = {};
+  _scrollCoverPins = {};
   final Set<String> _scrollCoverLoading = {};
   final Set<String> _scrollCoverFailures = {};
   final Set<String> _scrollCoverRefreshPending = {};
   final Map<String, ({ImageStream stream, ImageStreamListener listener})>
-      _scrollCoverReplacements = {};
+  _scrollCoverReplacements = {};
   List<String> _scrollCoverPriority = const [];
   bool _resumeWarmWhileInactive = false;
   bool _scrollPumpScheduled = false;
@@ -59,7 +61,10 @@ class LibraryCoverPrewarmer {
 
   bool get initialReady => _initialCoversReady;
   bool get resumeWarmWhileInactive => _resumeWarmWhileInactive;
-  bool get isBusy => _warming || _warmScheduled || _scrollPumpScheduled ||
+  bool get isBusy =>
+      _warming ||
+      _warmScheduled ||
+      _scrollPumpScheduled ||
       _scrollCoverLoading.isNotEmpty;
 
   void invalidateWindow() => _scrollWindowKey = null;
@@ -111,8 +116,8 @@ class LibraryCoverPrewarmer {
       final delta = offset - lastOffset;
       if (delta.abs() > 0.5 && elapsed >= 8) {
         _scrollDirection = delta > 0 ? 1 : -1;
-        _scrollVelocity = (_scrollVelocity * 0.4) +
-            ((delta.abs() * 1000 / elapsed) * 0.6);
+        _scrollVelocity =
+            (_scrollVelocity * 0.4) + ((delta.abs() * 1000 / elapsed) * 0.6);
       }
     }
     _lastScrollOffset = offset;
@@ -156,7 +161,9 @@ class LibraryCoverPrewarmer {
             _warmCover(folders[j].image),
         ]);
       }
-      if (!_disposed && canWarm() && !_initialCoversReady &&
+      if (!_disposed &&
+          canWarm() &&
+          !_initialCoversReady &&
           signatureAtStart == catalogSignature()) {
         _initialCoversReady = true;
         onInitialReady();
@@ -185,7 +192,9 @@ class LibraryCoverPrewarmer {
     try {
       if (!_initialCoversReady) {
         final ready = Completer<void>();
-        final stream = imageProvider.resolve(createLocalImageConfiguration(context()));
+        final stream = imageProvider.resolve(
+          createLocalImageConfiguration(context()),
+        );
         final listener = ImageStreamListener(
           (image, synchronousCall) {
             image.dispose();
@@ -250,11 +259,14 @@ class LibraryCoverPrewarmer {
           _startScrollCoverPin(path);
         }
       }
-      if (_resumeWarmWhileInactive && _scrollCoverLoading.isEmpty &&
-          !_scrollCoverPriority.any((path) =>
-              _scrollCoverRefreshPending.contains(path) ||
-              (!_scrollCoverPins.containsKey(path) &&
-                  !_scrollCoverFailures.contains(path)))) {
+      if (_resumeWarmWhileInactive &&
+          _scrollCoverLoading.isEmpty &&
+          !_scrollCoverPriority.any(
+            (path) =>
+                _scrollCoverRefreshPending.contains(path) ||
+                (!_scrollCoverPins.containsKey(path) &&
+                    !_scrollCoverFailures.contains(path)),
+          )) {
         _resumeWarmWhileInactive = false;
       }
     });
@@ -270,7 +282,9 @@ class LibraryCoverPrewarmer {
         _scrollCoverRefreshPending.remove(path);
         return;
       }
-      final stream = imageProvider.resolve(createLocalImageConfiguration(context()));
+      final stream = imageProvider.resolve(
+        createLocalImageConfiguration(context()),
+      );
       late final ImageStreamListener listener;
       listener = ImageStreamListener(
         (image, synchronousCall) {
@@ -312,7 +326,9 @@ class LibraryCoverPrewarmer {
     try {
       final imageProvider = provider(path);
       if (imageProvider == null) return;
-      final stream = imageProvider.resolve(createLocalImageConfiguration(context()));
+      final stream = imageProvider.resolve(
+        createLocalImageConfiguration(context()),
+      );
       late final ImageStreamListener listener;
       listener = ImageStreamListener(
         (image, synchronousCall) {
@@ -347,7 +363,8 @@ class LibraryCoverPrewarmer {
     final fast = _scrollVelocity > 2200;
     final ahead = math.min(fast ? 36 : 28, span * (fast ? 4 : 3));
     final behind = math.min(16, span);
-    final key = '$_scrollCatalogVersion:${filterKey()}:${range.first}:'
+    final key =
+        '$_scrollCatalogVersion:${filterKey()}:${range.first}:'
         '${range.end}:$_scrollDirection:$fast';
     if (key == _scrollWindowKey) return;
     _scrollWindowKey = key;
@@ -355,12 +372,14 @@ class LibraryCoverPrewarmer {
     final priority = <String>[];
     final wanted = <String>{};
     void addIndex(int index) {
-      if (index < 0 || index >= folders.length ||
+      if (index < 0 ||
+          index >= folders.length ||
           priority.length >= _maxScrollCoverPins) {
         return;
       }
       final path = folders[index].image;
-      if (path.isNotEmpty && path.toLowerCase() != 'asset' &&
+      if (path.isNotEmpty &&
+          path.toLowerCase() != 'asset' &&
           wanted.add(path)) {
         priority.add(path);
       }

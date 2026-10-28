@@ -7,9 +7,9 @@ import 'package:kurage/themes/accent_palette.dart';
 
 class ThemeChangeNotifier extends ChangeNotifier {
   ThemeChangeNotifier(AppSettings settings)
-      : _accentColor = settings.accentColor == null
-            ? null
-            : Color(settings.accentColor!) {
+    : _accentColor = settings.accentColor == null
+          ? null
+          : Color(settings.accentColor!) {
     _themeMode = settings.themeSelection;
     _theme = _buildTheme(_themeMode);
   }
@@ -44,8 +44,11 @@ class ThemeChangeNotifier extends ChangeNotifier {
     _themeMode = theme;
     _theme = _buildTheme(theme);
     notifyListeners();
-    unawaited(AppSettingsStore.update((s) => s.themeSelection = theme)
-        .catchError((Object error) => debugPrint('Theme save failed: $error')));
+    unawaited(
+      AppSettingsStore.update(
+        (s) => s.themeSelection = theme,
+      ).catchError((Object error) => debugPrint('Theme save failed: $error')),
+    );
   }
 
   void syncSystemTheme() {
@@ -61,8 +64,11 @@ class ThemeChangeNotifier extends ChangeNotifier {
     _accentColor = color;
     _theme = _buildTheme(_themeMode);
     notifyListeners();
-    unawaited(AppSettingsStore.update((s) => s.accentColor = color?.toARGB32())
-        .catchError((Object error) => debugPrint('Accent save failed: $error')));
+    unawaited(
+      AppSettingsStore.update(
+        (s) => s.accentColor = color?.toARGB32(),
+      ).catchError((Object error) => debugPrint('Accent save failed: $error')),
+    );
   }
 
   // Flutter's stock light scheme assigns the deep and pale purples to the
@@ -97,7 +103,8 @@ class ThemeChangeNotifier extends ChangeNotifier {
         base = oledTheme;
         break;
       case 'system':
-        base = WidgetsBinding.instance.platformDispatcher.platformBrightness ==
+        base =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
                 Brightness.light
             ? ThemeData.light(useMaterial3: true)
             : ThemeData.dark(useMaterial3: true);
@@ -125,11 +132,13 @@ class ThemeChangeNotifier extends ChangeNotifier {
         primaryContainer: accent,
         // Keep accent-container foregrounds consistent across theme modes.
         onPrimaryContainer: Colors.white,
-        inversePrimary: option?.toneFor(
+        inversePrimary:
+            option?.toneFor(
               base.brightness == Brightness.dark
                   ? Brightness.light
                   : Brightness.dark,
-            ) ?? tone,
+            ) ??
+            tone,
         secondary: tone,
         onSecondary: foreground,
         secondaryContainer: accent,
@@ -166,9 +175,7 @@ class ThemeChangeNotifier extends ChangeNotifier {
       textColor: Colors.white,
     ),
     dividerColor: Colors.white,
-    drawerTheme: const DrawerThemeData(
-      backgroundColor: Colors.black,
-    ),
+    drawerTheme: const DrawerThemeData(backgroundColor: Colors.black),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.black,
       selectedItemColor: Colors.blue,

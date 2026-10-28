@@ -34,9 +34,11 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
       _status = s;
       if (s == ConnectionStatus.online) {
         // Retry persisted offline positions after startup and reconnection.
-        unawaited(retryPendingProgress().catchError((Object error) {
-          logger.w('Could not retry saved reading progress: $error');
-        }));
+        unawaited(
+          retryPendingProgress().catchError((Object error) {
+            logger.w('Could not retry saved reading progress: $error');
+          }),
+        );
       }
       notifyListeners();
       if (_pollTimer != null) {
@@ -52,9 +54,9 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
     logger.d('ConnectionManager: startMonitoring called');
 
     WidgetsBinding.instance.addObserver(this);
-    _connectivitySubscription = Connectivity()
-        .onConnectivityChanged
-        .listen(_onConnectivityChanged);
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen(
+      _onConnectivityChanged,
+    );
 
     _startPolling();
     await validateStartup();
@@ -126,8 +128,11 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
 
     if (failure.kind == AppErrorKind.httpResponse) {
       final status = failure.httpStatus!;
-      if (status == 401 || status == 403 || status == 408 ||
-          status == 429 || status >= 500) {
+      if (status == 401 ||
+          status == 403 ||
+          status == 408 ||
+          status == 429 ||
+          status >= 500) {
         unawaited(validateStartup());
       }
     } else if (failure.kind == AppErrorKind.timeout ||
@@ -138,7 +143,8 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
 
   /// A completed authenticated page fetch confirms recovery without a new probe.
   void reportConnectionSuccess({required Session session}) {
-    if (_disposed || !identical(session, SessionStore.current) ||
+    if (_disposed ||
+        !identical(session, SessionStore.current) ||
         _status == ConnectionStatus.online) {
       return;
     }
@@ -182,7 +188,9 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
       var result = await _checkAuth(server);
       if (failureRevision != _failureRevision) return;
       if (result == ConnectionStatus.authFailed) {
-        logger.d('ConnectionManager: token rejected, attempting silent re-login');
+        logger.d(
+          'ConnectionManager: token rejected, attempting silent re-login',
+        );
         result = await _trySilentRelogin(server);
       }
 
@@ -206,8 +214,9 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
       final server = SessionStore.current.server.replaceAll(RegExp(r'/+$'), '');
       if (server.isEmpty) return false;
 
-      final response =
-          await JellyfinApi(server).getPublicSystemInfo().timeout(_timeout);
+      final response = await JellyfinApi(
+        server,
+      ).getPublicSystemInfo().timeout(_timeout);
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -217,9 +226,9 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
   Future<ConnectionStatus> _checkAuth(String server) async {
     try {
       final session = SessionStore.current;
-      final response = await JellyfinApi(server).getCurrentUser(
-        headers: {'Authorization': session.authorization},
-      ).timeout(_timeout);
+      final response = await JellyfinApi(server)
+          .getCurrentUser(headers: {'Authorization': session.authorization})
+          .timeout(_timeout);
 
       logger.d('ConnectionManager: /Users/Me -> ${response.statusCode}');
       if (response.statusCode == 401) return ConnectionStatus.authFailed;

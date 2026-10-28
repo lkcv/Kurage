@@ -29,15 +29,22 @@ Future<bool> removeDownloadedVolume(String id) async {
 
   // Old titles could map to the same extraction directory. Do not remove a
   // shared directory and silently corrupt another downloaded volume.
-  final otherDownloads = await isar.entrys.where().filter()
-      .downloadedEqualTo(true).findAll();
-  if (otherDownloads.any((other) =>
-      other.id != id && other.folderPath == directoryPath)) {
+  final otherDownloads = await isar.entrys
+      .where()
+      .filter()
+      .downloadedEqualTo(true)
+      .findAll();
+  if (otherDownloads.any(
+    (other) => other.id != id && other.folderPath == directoryPath,
+  )) {
     throw StateError('Download directory is shared with another volume');
   }
 
   if (!await dir.exists()) {
-    throw FileSystemException('Downloaded directory does not exist', directoryPath);
+    throw FileSystemException(
+      'Downloaded directory does not exist',
+      directoryPath,
+    );
   }
   await dir.delete(recursive: true);
 
@@ -49,4 +56,3 @@ Future<bool> removeDownloadedVolume(String id) async {
   logger.i('Removed local download: ${entry.title}');
   return true;
 }
-

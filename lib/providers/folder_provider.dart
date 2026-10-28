@@ -10,25 +10,35 @@ import 'package:kurage/variables.dart';
 // This function takes the list of entries and creates folders if their parentId is not one of the categories
 // It adds the folder to the list of folders in a isar box
 class CreateFolders {
-static Future<void> createFolders(
-      List<Entry> entries, List<String> categories) async {
+  static Future<void> createFolders(
+    List<Entry> entries,
+    List<String> categories,
+  ) async {
     final isar = Isar.getInstance();
     List<Folder> newFolders = [];
     entries.forEach((entry) {
       List<Entry> bookEntries = isar!.entrys
-          .filter().parentIdEqualTo(entry.id).findAllSync()
-          .where(isSupportedEntry).toList();
+          .filter()
+          .parentIdEqualTo(entry.id)
+          .findAllSync()
+          .where(isSupportedEntry)
+          .toList();
       List<String> bookEntryIds = bookEntries.map((entry) => entry.id).toList();
-      
-      final coverEntries = bookEntries.where((book) =>
-          book.type != EntryType.folder &&
-          book.imagePath.isNotEmpty &&
-          book.imagePath != 'Asset').toList()
-        ..sort(compareVolumeEntries);
+
+      final coverEntries =
+          bookEntries
+              .where(
+                (book) =>
+                    book.type != EntryType.folder &&
+                    book.imagePath.isNotEmpty &&
+                    book.imagePath != 'Asset',
+              )
+              .toList()
+            ..sort(compareVolumeEntries);
       final folderImage = coverEntries.isNotEmpty
           ? coverEntries.first.imagePath
           : entry.imagePath;
-      
+
       // IMPORTANT: Only create folders for non-library items
       // Skip if this entry IS a library category (top-level)
       if (!categories.contains(entry.id)) {
@@ -41,10 +51,12 @@ static Future<void> createFolders(
         newFolders.add(newFolder);
       }
     });
-    
+
     for (int i = 0; i < newFolders.length; i++) {
-      var folder =
-          isar!.folders.filter().idEqualTo(newFolders[i].id).findFirstSync();
+      var folder = isar!.folders
+          .filter()
+          .idEqualTo(newFolders[i].id)
+          .findFirstSync();
       if (folder != null) {
         final folderIsarId = folder.isarId;
         newFolders[i].isarId = folderIsarId;
@@ -71,26 +83,37 @@ static Future<void> createFolders(
     // whose children are the series folders. A "loose" book is one that sits
     // directly in that root (or has no stored parent folder at all) instead
     // of inside a series folder.
-    final folderEntries =
-        await isar.entrys.filter().typeEqualTo(EntryType.folder).findAll();
+    final folderEntries = await isar.entrys
+        .filter()
+        .typeEqualTo(EntryType.folder)
+        .findAll();
     final folderEntryIds = folderEntries.map((f) => f.id).toSet();
     final libraryRootIds = folderEntries
         .where((f) => libraryNames.contains(f.title))
         .map((f) => f.id)
         .toSet();
-    final allBooks = (await isar.entrys
-            .filter().not().typeEqualTo(EntryType.folder).findAll())
-        .where(isSupportedEntry).toList();
+    final allBooks =
+        (await isar.entrys
+                .filter()
+                .not()
+                .typeEqualTo(EntryType.folder)
+                .findAll())
+            .where(isSupportedEntry)
+            .toList();
     final looseBooks = allBooks
-        .where((b) =>
-            libraryRootIds.contains(b.parentId) ||
-            !folderEntryIds.contains(b.parentId))
+        .where(
+          (b) =>
+              libraryRootIds.contains(b.parentId) ||
+              !folderEntryIds.contains(b.parentId),
+        )
         .toList();
     final looseIds = looseBooks.map((b) => b.id).toSet();
-    logger.i('single-book folders: ${looseBooks.length} loose of '
-        '${allBooks.length} books; library roots: ${libraryRootIds.length} '
-        '(names: $libraryNames); sample: '
-        '${looseBooks.take(5).map((b) => '${b.title}=${b.parentId}').toList()}');
+    logger.i(
+      'single-book folders: ${looseBooks.length} loose of '
+      '${allBooks.length} books; library roots: ${libraryRootIds.length} '
+      '(names: $libraryNames); sample: '
+      '${looseBooks.take(5).map((b) => '${b.title}=${b.parentId}').toList()}',
+    );
 
     // Drop virtual folders for books that are no longer loose (e.g. a second
     // book was added to the directory, so Jellyfin now makes a real folder).
@@ -122,8 +145,10 @@ static Future<void> createFolders(
 
   static Future<void> getFolders(List<String> categories) async {
     final isar = Isar.getInstance();
-    final entries =
-        await isar!.entrys.filter().typeEqualTo(EntryType.folder).findAll();
+    final entries = await isar!.entrys
+        .filter()
+        .typeEqualTo(EntryType.folder)
+        .findAll();
     await CreateFolders.createFolders(entries, categories);
     await CreateFolders.createSingleBookFolders(categories);
   }

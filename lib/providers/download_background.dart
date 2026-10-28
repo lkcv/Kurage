@@ -10,8 +10,9 @@ import 'package:flutter/services.dart';
 class DownloadBackground {
   DownloadBackground._();
 
-  static const MethodChannel _channel =
-      MethodChannel('kurage/download_background');
+  static const MethodChannel _channel = MethodChannel(
+    'kurage/download_background',
+  );
   static bool _started = false;
 
   static Future<void> start() async {
@@ -32,7 +33,9 @@ class DownloadBackground {
     try {
       await _channel.invokeMethod<void>('stop');
     } catch (error) {
-      debugPrint('DownloadBackground: could not stop foreground service: $error');
+      debugPrint(
+        'DownloadBackground: could not stop foreground service: $error',
+      );
     }
   }
 }

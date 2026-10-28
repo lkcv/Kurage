@@ -25,7 +25,8 @@ Future<String> get _localPath async {
   // get the directory that normally is located at /storage/emulated/0/Documents/
   Directory directory;
   if (Platform.isAndroid) {
-    directory = await getExternalStorageDirectory() ??
+    directory =
+        await getExternalStorageDirectory() ??
         await getApplicationDocumentsDirectory();
   } else {
     directory = await getApplicationDocumentsDirectory();
@@ -39,11 +40,13 @@ Future<void> main() async {
   // Keep system bars hidden; edge swipes reveal them temporarily.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarBrightness: Brightness.dark,
-    statusBarIconBrightness: Brightness.light,
-  ));
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
 
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -56,16 +59,14 @@ Future<void> main() async {
   // path for isar database
   Directory dir = await getApplicationDocumentsDirectory();
 
-  final isar = await Isar.open(
-      [
-        AppSettingsSchema,
-        DownloadQueueRecordSchema,
-        PendingProgressRecordSchema,
-        EntrySchema,
-        FolderSchema,
-        LoginSchema,
-      ],
-      directory: dir.path);
+  final isar = await Isar.open([
+    AppSettingsSchema,
+    DownloadQueueRecordSchema,
+    PendingProgressRecordSchema,
+    EntrySchema,
+    FolderSchema,
+    LoginSchema,
+  ], directory: dir.path);
   await AppSettingsStore.initialize(isar);
   await SessionStore.initialize(isar);
 
@@ -85,17 +86,15 @@ Future<void> main() async {
 class MyApp extends StatelessWidget {
   final bool loggedIn;
 
-  const MyApp({
-    super.key,
-    this.loggedIn = false,
-  });
+  const MyApp({super.key, this.loggedIn = false});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<ThemeChangeNotifier>(
-            create: (context) => ThemeChangeNotifier(AppSettingsStore.current)),
+          create: (context) => ThemeChangeNotifier(AppSettingsStore.current),
+        ),
         ChangeNotifierProvider<ConnectionManager>(
           create: (context) {
             final manager = ConnectionManager();
@@ -113,18 +112,18 @@ class MyApp extends StatelessWidget {
         return _SystemThemeFollower(
           child: Consumer<ThemeChangeNotifier>(
             builder: (context, themeChangeNotifier, _) {
-          ThemeData themeData = themeChangeNotifier.getTheme;
-          return MaterialApp(
-            title: 'Kurage',
-            debugShowCheckedModeBanner: false,
-            locale: const Locale('en'),
-            // Use one consistent floating snackbar style for Light, Dark,
-            // AMOLED and the OS-resolved System theme.
-            theme: themeData.copyWith(
-              snackBarTheme: floatingSnackBarTheme(themeData),
-            ),
-            home: loggedIn ? const HomeScreen() : const LoginScreen(),
-          );
+              ThemeData themeData = themeChangeNotifier.getTheme;
+              return MaterialApp(
+                title: 'Kurage',
+                debugShowCheckedModeBanner: false,
+                locale: const Locale('en'),
+                // Use one consistent floating snackbar style for Light, Dark,
+                // AMOLED and the OS-resolved System theme.
+                theme: themeData.copyWith(
+                  snackBarTheme: floatingSnackBarTheme(themeData),
+                ),
+                home: loggedIn ? const HomeScreen() : const LoginScreen(),
+              );
             },
           ),
         );
@@ -177,7 +176,8 @@ class _SystemThemeFollowerState extends State<_SystemThemeFollower>
   }
 
   void _syncSystemTheme() {
-    if (!mounted || _themeNotifier?.selectedTheme != 'system' ||
+    if (!mounted ||
+        _themeNotifier?.selectedTheme != 'system' ||
         _updateScheduled) {
       return;
     }

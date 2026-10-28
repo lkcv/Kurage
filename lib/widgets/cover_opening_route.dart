@@ -36,29 +36,29 @@ class CoverOpeningRoute<T> extends PageRouteBuilder<T> {
        skipReturnFade = skipReturnFade,
        returnTarget = returnTarget,
        super(
-          transitionDuration: const Duration(milliseconds: 300),
-          // For other pages: keep the 200ms fade, then shrink for 300ms.
-          // Page zero skips the fade and shrinks for 300ms.
-          reverseTransitionDuration: pageReady == null
-              ? Duration.zero
-              : const Duration(milliseconds: 500),
-          // The collection underneath must remain painted during the return
-          // animation; otherwise shrinking the reader reveals a black screen.
-          opaque: pageReady == null,
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              builder(context),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-              _CoverOpeningTransition(
-            animation: animation,
-            sourceRect: sourceRect,
-            coverPath: coverPath,
-            pageReady: pageReady,
-            openingState: openingState,
-            skipReturnFade: skipReturnFade,
-            returnTarget: returnTarget,
-            child: child,
-          ),
-        );
+         transitionDuration: const Duration(milliseconds: 300),
+         // For other pages: keep the 200ms fade, then shrink for 300ms.
+         // Page zero skips the fade and shrinks for 300ms.
+         reverseTransitionDuration: pageReady == null
+             ? Duration.zero
+             : const Duration(milliseconds: 500),
+         // The collection underneath must remain painted during the return
+         // animation; otherwise shrinking the reader reveals a black screen.
+         opaque: pageReady == null,
+         pageBuilder: (context, animation, secondaryAnimation) =>
+             builder(context),
+         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+             _CoverOpeningTransition(
+               animation: animation,
+               sourceRect: sourceRect,
+               coverPath: coverPath,
+               pageReady: pageReady,
+               openingState: openingState,
+               skipReturnFade: skipReturnFade,
+               returnTarget: returnTarget,
+               child: child,
+             ),
+       );
 
   final ValueNotifier<bool>? pageReady;
   final ValueNotifier<ReaderOpeningState>? openingState;
@@ -71,12 +71,12 @@ class CoverOpeningRoute<T> extends PageRouteBuilder<T> {
     // its current page. The route's controller is created on push, before
     // skipReturnFade has a meaningful value.
     if (pageReady != null) {
-      controller?.reverseDuration = returnTarget?.value?.rect == null &&
-              returnTarget?.value != null
+      controller?.reverseDuration =
+          returnTarget?.value?.rect == null && returnTarget?.value != null
           ? const Duration(milliseconds: 180)
           : (skipReturnFade?.value ?? false)
-              ? const Duration(milliseconds: 300)
-              : const Duration(milliseconds: 500);
+          ? const Duration(milliseconds: 300)
+          : const Duration(milliseconds: 500);
     }
     return super.didPop(result);
   }
@@ -153,8 +153,7 @@ class _CoverOpeningTransition extends StatelessWidget {
         final arrived = animation.status == AnimationStatus.completed;
         final ready = pageReady?.value ?? true;
 
-        if (pageReady != null &&
-            animation.status == AnimationStatus.reverse) {
+        if (pageReady != null && animation.status == AnimationStatus.reverse) {
           final landing = returnTarget?.value;
           // Filtered Collections may not contain the current volume's card.
           // Fade to the Collection rather than shrink to an unrelated card.
@@ -177,17 +176,15 @@ class _CoverOpeningTransition extends StatelessWidget {
           final shrink = Curves.easeInOutCubic.transform(
             onCoverPage
                 ? elapsed.clamp(0.0, 1.0).toDouble()
-                : ((elapsed - 0.4) / 0.6)
-                    .clamp(0.0, 1.0)
-                    .toDouble(),
+                : ((elapsed - 0.4) / 0.6).clamp(0.0, 1.0).toDouble(),
           );
           final returningRect = Rect.lerp(target, returnRect, shrink)!;
 
           // A card's grid thumbnail may be cropped, while the reader cover
           // uses BoxFit.contain. Fade out the moving cover just as it reaches
           // the original card so those differing fits cannot visibly snap.
-          final landingFade = 1.0 -
-              ((shrink - 0.88) / 0.12).clamp(0.0, 1.0).toDouble();
+          final landingFade =
+              1.0 - ((shrink - 0.88) / 0.12).clamp(0.0, 1.0).toDouble();
 
           return Stack(
             fit: StackFit.expand,
@@ -195,9 +192,7 @@ class _CoverOpeningTransition extends StatelessWidget {
               // The route is non-opaque so the Collection can be revealed as
               // the cover shrinks. Keep it completely hidden while the reader
               // fades to black; otherwise the grid flashes through mid-fade.
-              ColoredBox(
-                color: Colors.black.withValues(alpha: 1.0 - shrink),
-              ),
+              ColoredBox(color: Colors.black.withValues(alpha: 1.0 - shrink)),
               Opacity(opacity: 1.0 - coverFade, child: destination!),
               IgnorePointer(
                 child: Stack(
@@ -209,7 +204,9 @@ class _CoverOpeningTransition extends StatelessWidget {
                         opacity: coverFade * landingFade,
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(10 * shrink),
-                          child: _ReaderOpeningCover(coverPath: returnCoverPath),
+                          child: _ReaderOpeningCover(
+                            coverPath: returnCoverPath,
+                          ),
                         ),
                       ),
                     ),
@@ -241,13 +238,16 @@ class _CoverOpeningTransition extends StatelessWidget {
                               shadowColor: Colors.transparent,
                             )
                           : ClipRRect(
-                              borderRadius:
-                                  BorderRadius.circular(10 * (1 - progress)),
+                              borderRadius: BorderRadius.circular(
+                                10 * (1 - progress),
+                              ),
                               child: _ReaderOpeningCover(coverPath: coverPath),
                             ),
                     ),
-                    if (arrived && !ready &&
-                        (openingState?.value ?? ReaderOpeningState.loadingPage) ==
+                    if (arrived &&
+                        !ready &&
+                        (openingState?.value ??
+                                ReaderOpeningState.loadingPage) ==
                             ReaderOpeningState.loadingPage)
                       Positioned(
                         bottom: MediaQuery.paddingOf(context).bottom + 24,
@@ -280,8 +280,7 @@ class _ReaderOpeningCover extends StatelessWidget {
     if (coverPath.isEmpty || coverPath.toLowerCase() == 'asset') {
       return Image.asset('assets/images/NoCoverArt.png', fit: BoxFit.contain);
     }
-    if (coverPath.startsWith('http://') ||
-        coverPath.startsWith('https://')) {
+    if (coverPath.startsWith('http://') || coverPath.startsWith('https://')) {
       return CachedNetworkImage(
         imageUrl: coverUrl(coverPath),
         cacheManager: CoverCacheManager.instance,

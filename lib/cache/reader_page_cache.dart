@@ -96,16 +96,16 @@ class ReaderPageCache {
 
   static String _key(String volumeId) => Uri.encodeComponent(volumeId);
 
-  static Future<Map<String, dynamic>> _readManifest(
-    Directory directory,
-  ) async {
+  static Future<Map<String, dynamic>> _readManifest(Directory directory) async {
     final file = File('${directory.path}/manifest.json');
     try {
       if (!await file.exists()) return <String, dynamic>{};
       final decoded = jsonDecode(await file.readAsString());
       if (decoded is Map) return Map<String, dynamic>.from(decoded);
     } catch (error) {
-      logger.w('ReaderPageCache: invalid manifest in ${directory.path}: $error');
+      logger.w(
+        'ReaderPageCache: invalid manifest in ${directory.path}: $error',
+      );
     }
     return <String, dynamic>{};
   }
@@ -205,8 +205,11 @@ class ReaderPageCache {
     for (final entry in rawPages.entries) {
       final index = int.tryParse(entry.key.toString());
       final filename = entry.value;
-      if (index == null || index < 0 || filename is! String ||
-          filename.isEmpty || filename.contains('/') ||
+      if (index == null ||
+          index < 0 ||
+          filename is! String ||
+          filename.isEmpty ||
+          filename.contains('/') ||
           filename.contains('\\')) {
         continue;
       }
@@ -222,12 +225,12 @@ class ReaderPageCache {
     required int pageCount,
     required int currentPage,
   }) => saveWindow(
-        volumeId: volumeId,
-        pageCount: pageCount,
-        currentPage: currentPage,
-        lastUsed: DateTime.now().millisecondsSinceEpoch,
-        sourceFiles: const <int, File>{},
-      );
+    volumeId: volumeId,
+    pageCount: pageCount,
+    currentPage: currentPage,
+    lastUsed: DateTime.now().millisecondsSinceEpoch,
+    sourceFiles: const <int, File>{},
+  );
 
   /// Save one or more page files. The saved position is always the latest
   /// requested position, regardless of which prefetch completed last.
@@ -243,26 +246,25 @@ class ReaderPageCache {
   }) {
     if (pageCount <= 0) return Future<void>.value();
     final existing = _positions[volumeId];
-    if (existing == null || (updatePosition && lastUsed >= existing.timestamp)) {
+    if (existing == null ||
+        (updatePosition && lastUsed >= existing.timestamp)) {
       _positions[volumeId] = _ReaderPosition(
         pageCount,
         currentPage.clamp(0, pageCount - 1).toInt(),
         lastUsed,
       );
     }
-    final queued = _writeQueue
-        .catchError((Object _) {})
-        .then((_) {
-          final position = _positions[volumeId]!;
-          return _saveWindow(
-            volumeId: volumeId,
-            pageCount: position.count,
-            currentPage: position.page,
-            lastUsed: position.timestamp,
-            sourceFiles: sourceFiles,
-            chapterLabels: chapterLabels,
-          );
-        });
+    final queued = _writeQueue.catchError((Object _) {}).then((_) {
+      final position = _positions[volumeId]!;
+      return _saveWindow(
+        volumeId: volumeId,
+        pageCount: position.count,
+        currentPage: position.page,
+        lastUsed: position.timestamp,
+        sourceFiles: sourceFiles,
+        chapterLabels: chapterLabels,
+      );
+    });
     _writeQueue = queued;
     return queued;
   }
@@ -278,7 +280,9 @@ class ReaderPageCache {
     required bool Function() allowed,
   }) {
     final operation = _writeQueue.catchError((Object _) {}).then((_) async {
-      if (!allowed() || pageCount <= 0 || pageIndex < 0 ||
+      if (!allowed() ||
+          pageCount <= 0 ||
+          pageIndex < 0 ||
           pageIndex >= pageCount) {
         return false;
       }
@@ -286,15 +290,16 @@ class ReaderPageCache {
       final directory = Directory('${root.path}/${_key(volumeId)}');
       final manifest = await _readManifest(directory);
       final previous = manifest['currentPage'];
-      final currentPage = (_positions[volumeId]?.page ??
-          (previous is num ? previous.toInt() : resumePage))
-          .clamp(0, pageCount - 1).toInt();
+      final currentPage =
+          (_positions[volumeId]?.page ??
+                  (previous is num ? previous.toInt() : resumePage))
+              .clamp(0, pageCount - 1)
+              .toInt();
       final sourceBytes = await file.length();
       if (_trackedBytes == null) await _indexCache(root);
       final limit = (await getLimitMb()) * _bytesPerMb;
       // Leave room for the manifest and metadata as well as the image.
-      if ((_trackedBytes ?? 0) + sourceBytes + 32768 > limit ||
-          !allowed()) {
+      if ((_trackedBytes ?? 0) + sourceBytes + 32768 > limit || !allowed()) {
         return false;
       }
       final lastUsed = manifest['lastUsed'];
@@ -349,7 +354,8 @@ class ReaderPageCache {
     for (final entry in sourceFiles.entries) {
       final index = entry.key;
       final source = entry.value;
-      if (index < 0 || index >= pageCount ||
+      if (index < 0 ||
+          index >= pageCount ||
           (!speculative && (index - safeCurrent).abs() > 3)) {
         continue;
       }
@@ -397,24 +403,30 @@ class ReaderPageCache {
 
     // Speculative files and metadata-only updates cannot move a reading
     // position to the nearest available (possibly prefetched) image.
-    final cachedIndices = pages.keys.map(int.tryParse).whereType<int>().toList();
-    final persistedCurrent = speculative || sourceFiles.isEmpty ||
-        pages.containsKey('$safeCurrent')
+    final cachedIndices = pages.keys
+        .map(int.tryParse)
+        .whereType<int>()
+        .toList();
+    final persistedCurrent =
+        speculative || sourceFiles.isEmpty || pages.containsKey('$safeCurrent')
         ? safeCurrent
         : (cachedIndices.isEmpty
-            ? safeCurrent
-            : (cachedIndices..sort((a, b) {
-                final distance = (a - safeCurrent)
-                    .abs()
-                    .compareTo((b - safeCurrent).abs());
-                return distance != 0 ? distance : a.compareTo(b);
-              })).first);
+              ? safeCurrent
+              : (cachedIndices..sort((a, b) {
+                      final distance = (a - safeCurrent).abs().compareTo(
+                        (b - safeCurrent).abs(),
+                      );
+                      return distance != 0 ? distance : a.compareTo(b);
+                    }))
+                    .first);
 
     final previousLastUsed = oldManifest['lastUsed'];
-    final previousLastUsedMs =
-        previousLastUsed is num ? previousLastUsed.toInt() : 0;
-    final effectiveLastUsed =
-        previousLastUsedMs > lastUsed ? previousLastUsedMs : lastUsed;
+    final previousLastUsedMs = previousLastUsed is num
+        ? previousLastUsed.toInt()
+        : 0;
+    final effectiveLastUsed = previousLastUsedMs > lastUsed
+        ? previousLastUsedMs
+        : lastUsed;
     // Later page loads must not erase chapter metadata discovered during
     // archive indexing. A non-empty update replaces the previous mapping.
     final chapters = chapterLabels.isNotEmpty
@@ -432,7 +444,10 @@ class ReaderPageCache {
       'chapters': chapters,
     };
     final temporaryManifest = File('${directory.path}/manifest.json.tmp');
-    await temporaryManifest.writeAsString(jsonEncode(updatedManifest), flush: true);
+    await temporaryManifest.writeAsString(
+      jsonEncode(updatedManifest),
+      flush: true,
+    );
     try {
       await temporaryManifest.rename(manifestFile.path);
     } on FileSystemException {
@@ -605,8 +620,10 @@ class ReaderPageCache {
         _volumeByteCounts.remove(stale.directory.path);
         _trackedBytes = _trackedBytes! - stale.bytes;
       } on FileSystemException catch (error) {
-        logger.w('ReaderPageCache: could not prune '
-            '${stale.directory.path}: $error');
+        logger.w(
+          'ReaderPageCache: could not prune '
+          '${stale.directory.path}: $error',
+        );
       }
     }
     if (_trackedBytes! > maxCacheBytes && protectedDirectory != null) {
@@ -628,8 +645,10 @@ class ReaderPageCache {
     }
     if (_trackedBytes! > maxCacheBytes) {
       // Keep the displayed page even when one page exceeds the configured limit.
-      logger.w('ReaderPageCache: cache remains above disk budget '
-          '($_trackedBytes / $maxCacheBytes bytes)');
+      logger.w(
+        'ReaderPageCache: cache remains above disk budget '
+        '($_trackedBytes / $maxCacheBytes bytes)',
+      );
     }
   }
 }

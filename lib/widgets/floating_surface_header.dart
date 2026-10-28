@@ -5,7 +5,8 @@ import 'package:kurage/themes/theme_constants.dart';
 
 /// Shared 36dp top bar and translucent concave corners.
 /// Individual screens own their controls, title, and navigation behavior.
-class FloatingSurfaceHeader extends StatelessWidget implements PreferredSizeWidget {
+class FloatingSurfaceHeader extends StatelessWidget
+    implements PreferredSizeWidget {
   const FloatingSurfaceHeader({
     super.key,
     required this.topInset,
@@ -78,8 +79,11 @@ class _HeaderCornersPainter extends CustomPainter {
       ..moveTo(size.width - r, 0)
       ..lineTo(size.width, 0)
       ..lineTo(size.width, r)
-      ..arcToPoint(Offset(size.width - r, 0),
-          radius: cornerRadius, clockwise: false)
+      ..arcToPoint(
+        Offset(size.width - r, 0),
+        radius: cornerRadius,
+        clockwise: false,
+      )
       ..close();
 
     canvas.drawPath(left, paint);

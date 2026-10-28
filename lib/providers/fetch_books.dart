@@ -30,8 +30,9 @@ Future<Set<String>> getComics(String comicsId) async {
   final revisionBeforeFetch = progressRevision();
   // Preserve pages that were pending when this network request began, even if
   // their upload completes before the (possibly older) GET response arrives.
-  final protectedAtFetchStart =
-      await locallyProtectedProgressIds(revisionBeforeFetch);
+  final protectedAtFetchStart = await locallyProtectedProgressIds(
+    revisionBeforeFetch,
+  );
   List<dynamic> responseData = [];
   try {
     final response = await api.getItems(
@@ -69,7 +70,8 @@ Future<Set<String>> getComics(String comicsId) async {
     // Jellyfin can flag one-volume series as IsFolder even when Type is Book.
     // Keep those as books while recognizing genuine folders.
     final jellyfinKind = (element['Type'] as String? ?? '').toLowerCase();
-    final isFolder = jellyfinKind == 'folder' ||
+    final isFolder =
+        jellyfinKind == 'folder' ||
         (element['IsFolder'] == true && jellyfinKind != 'book');
     final imageTags = element['ImageTags'] as Map<String, dynamic>?;
     final itemId = element['Id'] as String? ?? '';
@@ -109,13 +111,17 @@ Future<Set<String>> getComics(String comicsId) async {
     final ticks = (userData?['PlaybackPositionTicks'] as num?)?.toInt();
     if ((extension == 'cbz' || extension == 'zip') &&
         !protectedIds.contains(entry.id) &&
-        ticks != null && ticks >= 0) {
+        ticks != null &&
+        ticks >= 0) {
       final serverPage = ticks ~/ 10000;
       if (entry.pageNum != serverPage) {
         entry.pageNum = serverPage;
         final serverPercent = userData?['PlayedPercentage'] as num?;
         if (serverPercent != null) {
-          entry.progress = serverPercent.toDouble().clamp(0.0, 100.0).toDouble();
+          entry.progress = serverPercent
+              .toDouble()
+              .clamp(0.0, 100.0)
+              .toDouble();
         } else if (serverPage == 0) {
           entry.progress = 0;
         }
@@ -133,8 +139,7 @@ Future<Set<String>> getComics(String comicsId) async {
   // into agreement with Isar without discarding downloaded page images.
   for (final restored in restoredPages.entries) {
     try {
-      await ReaderPageCache.restoreServerPage(
-        restored.key, restored.value);
+      await ReaderPageCache.restoreServerPage(restored.key, restored.value);
     } catch (error) {
       logger.w('Could not align cached page for ${restored.key}: $error');
     }
@@ -173,18 +178,24 @@ Future<void> reconcileMissingEntries(
   // whether it was previously downloaded. Leave physical files untouched.
   await isar.writeTxn(() async {
     await isar.entrys.deleteAll(
-        missingEntries.map((entry) => entry.isarId).toList());
+      missingEntries.map((entry) => entry.isarId).toList(),
+    );
     await isar.folders.deleteAll(
-        missingFolders.map((folder) => folder.isarId).toList());
+      missingFolders.map((folder) => folder.isarId).toList(),
+    );
   });
-  logger.i('Pruned ${missingEntries.length} missing entries and '
-      '${missingFolders.length} missing folders from Isar');
+  logger.i(
+    'Pruned ${missingEntries.length} missing entries and '
+    '${missingFolders.length} missing folders from Isar',
+  );
 }
 
 Future<void> updateFolders() async {
   final isar = Isar.getInstance();
-  List<Entry> entryFolders =
-      await isar!.entrys.filter().typeEqualTo(EntryType.folder).findAll();
+  List<Entry> entryFolders = await isar!.entrys
+      .filter()
+      .typeEqualTo(EntryType.folder)
+      .findAll();
   List<Entry> entrys = await isar.entrys.where().findAll();
   List<Folder> folders = [];
   folders = await isar.folders.where().findAll();
@@ -192,11 +203,7 @@ Future<void> updateFolders() async {
   for (Entry e in entryFolders) {
     if (folders.indexWhere((element) => element.id == e.id) == -1) {
       // add folder
-      Folder folder = Folder(
-        id: e.id,
-        name: e.title,
-        image: e.imagePath,
-      );
+      Folder folder = Folder(id: e.id, name: e.title, image: e.imagePath);
       folders.add(folder);
     }
   }

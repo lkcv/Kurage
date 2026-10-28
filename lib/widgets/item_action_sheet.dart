@@ -39,11 +39,8 @@ Future<T?> showItemActionSheet<T>(
     constraints: BoxConstraints(
       maxHeight: MediaQuery.sizeOf(context).height * 0.75,
     ),
-    builder: (sheetContext) => _ItemActionSheet<T>(
-      title: title,
-      subtitle: subtitle,
-      actions: actions,
-    ),
+    builder: (sheetContext) =>
+        _ItemActionSheet<T>(title: title, subtitle: subtitle, actions: actions),
   );
 }
 

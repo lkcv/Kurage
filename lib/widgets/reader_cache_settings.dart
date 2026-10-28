@@ -96,7 +96,8 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
     if (_busy ||
         !await _confirm(
           title: 'Clear reader page cache?',
-          description: 'Remove cached pages from previously opened volumes. '
+          description:
+              'Remove cached pages from previously opened volumes. '
               'Downloaded volumes and covers will not be deleted.',
         )) {
       return;
@@ -119,7 +120,8 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
     if (_busy ||
         !await _confirm(
           title: 'Clear cover cache?',
-          description: 'Remove downloaded covers and cached profile images. '
+          description:
+              'Remove downloaded covers and cached profile images. '
               'These images will be fetched again when needed.',
         )) {
       return;
@@ -152,9 +154,11 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       _notify('Reader cache limit updated');
     } catch (error) {
       logger.w(
-          'ReaderCacheSettings: could not update reader cache limit: $error');
+        'ReaderCacheSettings: could not update reader cache limit: $error',
+      );
       _notify(
-          _cacheFailureMessage(error, 'Could not update reader cache limit'));
+        _cacheFailureMessage(error, 'Could not update reader cache limit'),
+      );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -173,15 +177,21 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Storage & cache',
-                style: Theme.of(context).textTheme.titleMedium),
+            Text(
+              'Storage & cache',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const Icon(Icons.download_for_offline_outlined),
-              title: Text('Downloaded volumes',
-                  style: Theme.of(context).textTheme.bodyLarge),
-              subtitle: Text('Manage locally stored volumes',
-                  style: Theme.of(context).textTheme.bodySmall),
+              title: Text(
+                'Downloaded volumes',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              subtitle: Text(
+                'Manage locally stored volumes',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute(
@@ -206,8 +216,10 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Reader page cache',
-                          style: Theme.of(context).textTheme.bodyLarge),
+                      Text(
+                        'Reader page cache',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 2),
                       Text(
                         'Previously viewed pages, up to your cache limit',
@@ -215,9 +227,7 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                       ),
                       const SizedBox(height: 12),
                       if (_loading)
-                        LinearProgressIndicator(
-                          backgroundColor: trackColor,
-                        )
+                        LinearProgressIndicator(backgroundColor: trackColor)
                       else
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,13 +240,16 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                                 Text('${_displayMb(_usageBytes)} MB used of'),
                                 OutlinedButton.icon(
                                   onPressed: _busy ? null : _editLimit,
-                                  icon:
-                                      const Icon(Icons.edit_outlined, size: 16),
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 16,
+                                  ),
                                   label: Text('$_limitMb MB'),
                                   style: OutlinedButton.styleFrom(
                                     visualDensity: VisualDensity.compact,
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10),
+                                      horizontal: 10,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -251,9 +264,12 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                       if (_error != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(_error!,
-                              style: TextStyle(
-                                  color: Theme.of(context).colorScheme.error)),
+                          child: Text(
+                            _error!,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -284,8 +300,10 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Cover image cache',
-                          style: Theme.of(context).textTheme.bodyLarge),
+                      Text(
+                        'Cover image cache',
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                       Text(
                         'Covers and profile images are stored separately',
                         style: Theme.of(context).textTheme.bodySmall,
@@ -340,9 +358,7 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
   void initState() {
     super.initState();
     _custom = widget.initialLimitMb != ReaderPageCache.defaultLimitMb;
-    _controller = TextEditingController(
-      text: widget.initialLimitMb.toString(),
-    );
+    _controller = TextEditingController(text: widget.initialLimitMb.toString());
   }
 
   @override
@@ -366,7 +382,8 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
   @override
   Widget build(BuildContext context) {
     final customMb = int.tryParse(_controller.text);
-    final validCustom = customMb != null &&
+    final validCustom =
+        customMb != null &&
         customMb > 0 &&
         customMb <= ReaderPageCache.maxCustomLimitMb;
     return AlertDialog(
@@ -392,9 +409,7 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Row(
                   children: [
-                    const Radio<bool>(
-                      value: false,
-                    ),
+                    const Radio<bool>(value: false),
                     const Expanded(child: Text('1000 MB (default)')),
                   ],
                 ),
@@ -407,9 +422,7 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Row(
                   children: [
-                    const Radio<bool>(
-                      value: true,
-                    ),
+                    const Radio<bool>(value: true),
                     const Text('Custom'),
                     const SizedBox(width: 10),
                     Expanded(
@@ -418,7 +431,7 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
                         focusNode: _numberFocus,
                         keyboardType: TextInputType.number,
                         inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
+                          FilteringTextInputFormatter.digitsOnly,
                         ],
                         textAlign: TextAlign.center,
                         decoration: const InputDecoration(
@@ -465,9 +478,9 @@ class _CacheLimitDialogState extends State<_CacheLimitDialog> {
           onPressed: _custom && !validCustom
               ? null
               : () => Navigator.pop(
-                    context,
-                    _custom ? customMb : ReaderPageCache.defaultLimitMb,
-                  ),
+                  context,
+                  _custom ? customMb : ReaderPageCache.defaultLimitMb,
+                ),
           child: const Text('Save'),
         ),
       ],

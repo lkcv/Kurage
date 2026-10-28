@@ -40,16 +40,23 @@ Future<void> showVolumeActions(
       break;
     }
   }
-  final alreadyQueued = pending != null &&
+  final alreadyQueued =
+      pending != null &&
       pending.state != DownloadJobState.failed &&
       pending.state != DownloadJobState.canceled &&
       pending.state != DownloadJobState.completed;
   final unread = LibraryFilter.isUnread(current);
   final finished = LibraryFilter.isFinished(current);
-  final status = unread ? 'UNREAD' : finished ? 'FINISHED' : 'READING';
+  final status = unread
+      ? 'UNREAD'
+      : finished
+      ? 'FINISHED'
+      : 'READING';
   final downloadStatus = current.downloaded
       ? 'Downloaded'
-      : alreadyQueued ? 'Download queued' : 'Not downloaded';
+      : alreadyQueued
+      ? 'Download queued'
+      : 'Not downloaded';
   final selected = await showItemActionSheet<_VolumeAction>(
     context,
     title: current.title,
@@ -67,7 +74,8 @@ Future<void> showVolumeActions(
         ItemSheetAction<_VolumeAction>(
           value: _VolumeAction.download,
           label: pending?.state == DownloadJobState.failed
-              ? 'Retry download' : 'Download volume',
+              ? 'Retry download'
+              : 'Download volume',
           icon: Icons.download_rounded,
         ),
       if (!finished)
@@ -87,61 +95,78 @@ Future<void> showVolumeActions(
   if (!context.mounted || selected == null) return;
 
   if (selected == _VolumeAction.download) {
-    final latest = await database.entrys.where().idEqualTo(entry.id).findFirst();
+    final latest = await database.entrys
+        .where()
+        .idEqualTo(entry.id)
+        .findFirst();
     if (!context.mounted || latest == null) return;
     if (!latest.downloaded && isSupportedEntry(latest)) {
       // enqueue() deduplicates concurrent and failed jobs for this volume.
       final job = queue.enqueue(latest);
       // Refresh on completion only, never on transfer progress ticks.
       // A reader opened meanwhile will refresh Collection on its own exit.
-      unawaited(job.result.then((downloaded) {
-        if (downloaded != null && context.mounted &&
-            (ModalRoute.of(context)?.isCurrent ?? false)) {
-          onChanged(VolumeActionChange.download);
-        }
-      }));
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Volume added to download queue'),
-      ));
+      unawaited(
+        job.result.then((downloaded) {
+          if (downloaded != null &&
+              context.mounted &&
+              (ModalRoute.of(context)?.isCurrent ?? false)) {
+            onChanged(VolumeActionChange.download);
+          }
+        }),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Volume added to download queue')),
+      );
     }
     return;
   }
 
   if (selected == _VolumeAction.deleteDownload) {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete downloaded volume?'),
-        content: Text('Remove the local copy of "${current.title}"? '
-            'Reading progress and cached pages will be kept.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
+    final confirmed =
+        await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete downloaded volume?'),
+            content: Text(
+              'Remove the local copy of "${current.title}"? '
+              'Reading progress and cached pages will be kept.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ) ?? false;
+        ) ??
+        false;
     if (!confirmed || !context.mounted) return;
     // Never remove a local directory while a queued transfer may use it.
     if (queue.jobs.any((job) => job.id == entry.id)) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Cancel the queued download before deleting'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cancel the queued download before deleting'),
+        ),
+      );
       return;
     }
     try {
       final removed = await removeDownloadedVolume(entry.id);
       if (!context.mounted) return;
       if (removed) onChanged(VolumeActionChange.download);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(removed ? 'Downloaded volume deleted'
-            : 'This volume is no longer downloaded'),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            removed
+                ? 'Downloaded volume deleted'
+                : 'This volume is no longer downloaded',
+          ),
+        ),
+      );
     } catch (error) {
       if (!context.mounted) return;
       logger.w('Could not remove volume download ${entry.id}: $error');
@@ -157,7 +182,10 @@ Future<void> showVolumeActions(
     // Update both fields for UNREAD. A zero percentage with a saved page
     // above zero still counts as READING according to LibraryFilter.
     await database.writeTxn(() async {
-      final latest = await database.entrys.where().idEqualTo(entry.id).findFirst();
+      final latest = await database.entrys
+          .where()
+          .idEqualTo(entry.id)
+          .findFirst();
       if (latest == null) return;
       latest.progress = markFinished ? 100.0 : 0.0;
       if (!markFinished) latest.pageNum = 0;
@@ -177,9 +205,11 @@ Future<void> showVolumeActions(
     if (!markFinished) entry.pageNum = 0;
     onChanged(VolumeActionChange.readingStatus);
     serverProgressRevision.value++;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(markFinished ? 'Marked as FINISHED' : 'Marked as UNREAD'),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(markFinished ? 'Marked as FINISHED' : 'Marked as UNREAD'),
+      ),
+    );
   } catch (error) {
     if (!context.mounted) return;
     logger.w('Could not update reading status ${entry.id}: $error');

@@ -69,7 +69,8 @@ class SpeculativeCoverPrefetcher {
   }
 
   bool _valid(int generation) =>
-      generation == _generation && _owner != null &&
+      generation == _generation &&
+      _owner != null &&
       (_allowed?.call() ?? false);
 
   bool get _foregroundBusy =>
@@ -120,8 +121,10 @@ class SpeculativeCoverPrefetcher {
       debugPrint('Speculative cover cache: $error');
     } finally {
       if (fetched + hits + failures > 0) {
-        debugPrint('Speculative [$label]: $fetched fetched, '
-            '$hits cached, $failures failed');
+        debugPrint(
+          'Speculative [$label]: $fetched fetched, '
+          '$hits cached, $failures failed',
+        );
       }
       _running = false;
       if (_retryWhenIdle && _owner != null) {

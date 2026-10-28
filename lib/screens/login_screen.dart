@@ -19,7 +19,6 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-
   final _url = TextEditingController();
   final _username = TextEditingController();
   final _password = TextEditingController();
@@ -31,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _passwordVisible = false;
-    
+
     // Prefill fields from saved login if available
     _prefillFromSavedLogin();
   }
@@ -39,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _prefillFromSavedLogin() async {
     final isar = Isar.getInstance();
     final savedLogin = await isar?.logins.where().findFirst();
-    
+
     if (savedLogin != null && mounted) {
       setState(() {
         _url.text = savedLogin.serverUrl;
@@ -85,7 +84,9 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       final result = await LoginProvider.loginStatic(
-        address, username, _password.text,
+        address,
+        username,
+        _password.text,
       );
       if (!mounted) return;
       if (result == 'true') {
@@ -116,14 +117,9 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const Text(
                 "クラゲ",
-                style: TextStyle(
-                  fontSize: 50,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(
-                height: 50,
-              ),
+              const SizedBox(height: 50),
               Padding(
                 padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
                 child: TextFormField(
@@ -137,9 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 5,
-              ),
+              const SizedBox(height: 5),
               Padding(
                 padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
                 child: TextFormField(
@@ -149,15 +143,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   autofillHints: const [],
                   enableSuggestions: false,
                   decoration: InputDecoration(
-                    labelText:
-                        "Username",
+                    labelText: "Username",
                     border: OutlineInputBorder(),
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 5,
-              ),
+              const SizedBox(height: 5),
               Padding(
                 padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
                 child: TextFormField(
@@ -166,8 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   focusNode: _focusNode3,
                   obscureText: !_passwordVisible,
                   decoration: InputDecoration(
-                    labelText:
-                        "Password",
+                    labelText: "Password",
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -184,9 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 10,
-              ),
+              const SizedBox(height: 10),
               SizedBox(
                 width: MediaQuery.of(context).size.width - 50,
                 height: 50,
@@ -198,26 +186,16 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.login),
-                      const SizedBox(
-                        width: 10,
-                      ),
-                      Text("Connect",
-                          style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 10),
+                      Text("Connect", style: const TextStyle(fontSize: 20)),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(
-                height: 15,
-              ),
+              const SizedBox(height: 15),
               Padding(
                 padding: const EdgeInsets.fromLTRB(25, 8, 25, 8),
-                child: Text(
-                  _error,
-                  style: const TextStyle(
-                    color: Colors.red,
-                  ),
-                ),
+                child: Text(_error, style: const TextStyle(color: Colors.red)),
               ),
             ],
           ),

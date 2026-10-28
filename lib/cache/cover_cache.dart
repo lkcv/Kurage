@@ -20,8 +20,10 @@ class CoverCacheManager {
     final directory = await IOFileSystem.createDirectory('kurage_image_cache');
     var bytes = 0;
     try {
-      await for (final entity
-          in directory.list(recursive: true, followLinks: false)) {
+      await for (final entity in directory.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         try {
           final stat = await entity.stat();
           if (stat.type == FileSystemEntityType.file) {
@@ -68,8 +70,5 @@ Future<void> precacheCover(BuildContext context, String url) {
   if (url.isEmpty || url.toLowerCase() == 'asset' || !url.contains('http')) {
     return Future.value();
   }
-  return precacheImage(
-    coverImageProvider(url)!,
-    context,
-  );
+  return precacheImage(coverImageProvider(url)!, context);
 }

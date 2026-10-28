@@ -22,10 +22,10 @@ class AppSettings {
   });
 
   AppSettings copy() => AppSettings(
-        themeSelection: themeSelection,
-        accentColor: accentColor,
-        readingDirection: readingDirection,
-        readerCacheLimitMb: readerCacheLimitMb,
-        libraryNames: List<String>.of(libraryNames),
-      );
+    themeSelection: themeSelection,
+    accentColor: accentColor,
+    readingDirection: readingDirection,
+    readerCacheLimitMb: readerCacheLimitMb,
+    libraryNames: List<String>.of(libraryNames),
+  );
 }

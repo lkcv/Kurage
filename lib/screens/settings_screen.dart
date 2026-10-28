@@ -30,7 +30,6 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-
   String userName = '';
   String serverUrl = '';
 
@@ -75,12 +74,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> logout() async {
     final isar = Isar.getInstance();
     if (isar == null) return;
-    final loginIds =
-        (await isar.logins.where().findAll()).map((e) => e.isarId).toList();
-    final entryIds =
-        (await isar.entrys.where().findAll()).map((e) => e.isarId).toList();
-    final folderIds =
-        (await isar.folders.where().findAll()).map((e) => e.isarId).toList();
+    final loginIds = (await isar.logins.where().findAll())
+        .map((e) => e.isarId)
+        .toList();
+    final entryIds = (await isar.entrys.where().findAll())
+        .map((e) => e.isarId)
+        .toList();
+    final folderIds = (await isar.folders.where().findAll())
+        .map((e) => e.isarId)
+        .toList();
     await isar.writeTxn(() async {
       logger.i('deleted ${loginIds.length} logins');
       await isar.logins.deleteAll(loginIds);
@@ -107,29 +109,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final headerBrightness = Theme.of(context).brightness;
-    final headerForeground =
-        FloatingSurfacePalette.foreground(headerBrightness);
+    final headerForeground = FloatingSurfacePalette.foreground(
+      headerBrightness,
+    );
     return Scaffold(
       // Match the Library's compact, theme-aware translucent header.
       appBar: FloatingSurfaceHeader(
         topInset: MediaQuery.paddingOf(context).top,
         alignment: Alignment.center,
         children: [
-                Align(
-                  // Same notch-aware title alignment as the Library header.
-                  alignment: MediaQuery.of(context).padding.top > 30
-                      ? const Alignment(0, -0.7)
-                      : Alignment.center,
-                  child: Text(
-                    "Settings",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: headerForeground,
-                    ),
-                  ),
-                ),
-          ],
+          Align(
+            // Same notch-aware title alignment as the Library header.
+            alignment: MediaQuery.of(context).padding.top > 30
+                ? const Alignment(0, -0.7)
+                : Alignment.center,
+            child: Text(
+              "Settings",
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: headerForeground,
+              ),
+            ),
+          ),
+        ],
       ),
       body: Container(
         padding: const EdgeInsets.all(10),
@@ -210,8 +213,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onTap: () async {
                         final uri = Uri.tryParse(serverUrl);
                         if (uri != null && await canLaunchUrl(uri)) {
-                          await launchUrl(uri,
-                              mode: LaunchMode.externalApplication);
+                          await launchUrl(
+                            uri,
+                            mode: LaunchMode.externalApplication,
+                          );
                         }
                       },
                       child: Text(
@@ -262,8 +267,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 options: themeOptions,
                 selected: selectedTheme,
               );
-              if (!mounted || !context.mounted ||
-                  selected == null || selected == selectedTheme) {
+              if (!mounted ||
+                  !context.mounted ||
+                  selected == null ||
+                  selected == selectedTheme) {
                 return;
               }
               context.read<ThemeChangeNotifier>().setTheme = selected;
@@ -283,8 +290,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 10),
-                Text(_accentLabel(accent),
-                    style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  _accentLabel(accent),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
                 const SizedBox(width: 8),
                 const Icon(Icons.chevron_right),
               ],
@@ -295,17 +304,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _choiceTile(
             icon: Icons.format_textdirection_l_to_r_rounded,
             title: "Reading Direction",
-            value: directionOptions[selectedDirection] ?? directionOptions['LTR']!,
+            value:
+                directionOptions[selectedDirection] ?? directionOptions['LTR']!,
             onTap: () async {
               final selected = await _showChoices(
                 title: "Reading Direction",
                 options: directionOptions,
                 selected: selectedDirection,
               );
-              if (!mounted || selected == null || selected == selectedDirection) {
+              if (!mounted ||
+                  selected == null ||
+                  selected == selectedDirection) {
                 return;
               }
-              await AppSettingsStore.update((s) => s.readingDirection = selected);
+              await AppSettingsStore.update(
+                (s) => s.readingDirection = selected,
+              );
               if (!mounted) return;
               setState(() {});
             },
@@ -321,8 +335,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Color _accentTone(Color accent) {
-    return AccentPalette.forColor(accent)
-            ?.toneFor(Theme.of(context).brightness) ??
+    return AccentPalette.forColor(
+          accent,
+        )?.toneFor(Theme.of(context).brightness) ??
         accent;
   }
 
@@ -400,8 +415,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Accent color',
-                    style: Theme.of(sheetContext).textTheme.titleMedium),
+                Text(
+                  'Accent color',
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 16),
                 Wrap(
                   alignment: WrapAlignment.center,
@@ -431,11 +448,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   showSelectionRing: true,
                                 ),
                                 const SizedBox(height: 5),
-                                Text(entry.name,
-                                    maxLines: 1,
-                                    style: Theme.of(sheetContext)
-                                        .textTheme
-                                        .labelSmall),
+                                Text(
+                                  entry.name,
+                                  maxLines: 1,
+                                  style: Theme.of(
+                                    sheetContext,
+                                  ).textTheme.labelSmall,
+                                ),
                               ],
                             ),
                           ),
@@ -520,16 +539,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Text(title,
-                  style: Theme.of(sheetContext).textTheme.titleMedium),
+              child: Text(
+                title,
+                style: Theme.of(sheetContext).textTheme.titleMedium,
+              ),
             ),
-            ...options.entries.map((option) => ListTile(
-                  title: Text(option.value),
-                  trailing: option.key == selected
-                      ? const Icon(Icons.check_rounded)
-                      : null,
-                  onTap: () => Navigator.pop(sheetContext, option.key),
-                )),
+            ...options.entries.map(
+              (option) => ListTile(
+                title: Text(option.value),
+                trailing: option.key == selected
+                    ? const Icon(Icons.check_rounded)
+                    : null,
+                onTap: () => Navigator.pop(sheetContext, option.key),
+              ),
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -550,8 +573,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Disk-cache key (same CacheManager as covers). Avoids re-download + layout jump.
     final cacheKey = 'user_profile_$userId';
     try {
-      final cached =
-          await CoverCacheManager.instance.getFileFromCache(cacheKey);
+      final cached = await CoverCacheManager.instance.getFileFromCache(
+        cacheKey,
+      );
       if (cached != null && await cached.file.exists()) {
         return FileImage(cached.file);
       }
@@ -574,10 +598,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     Uint8List image = Uint8List(0);
     ImageProvider? imageProvider;
     try {
-      final response = await api.getUserImage(
-        userId: userId,
-        headers: headers,
-      );
+      final response = await api.getUserImage(userId: userId, headers: headers);
       logger.i(response.statusCode);
       if (response.statusCode == 200 && response.data != null) {
         image = Uint8List.fromList(response.data!);
@@ -599,5 +620,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
     return imageProvider;
   }
-
 }

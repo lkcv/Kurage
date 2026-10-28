@@ -49,15 +49,13 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
     try {
       final isar = Isar.getInstance();
       if (isar == null) return [];
-      final entries = (await isar.entrys
-              .where()
-              .filter()
-              .downloadedEqualTo(true)
-              .findAll())
-          .where(isSupportedEntry)
-          .toList()
-        ..sort(
-            (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      final entries =
+          (await isar.entrys.where().filter().downloadedEqualTo(true).findAll())
+              .where(isSupportedEntry)
+              .toList()
+            ..sort(
+              (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+            );
       final folders = await isar.folders.where().findAll();
       final seriesNames = <String, String>{
         for (final folder in folders) folder.id: folder.name,
@@ -65,14 +63,15 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
       return await Future.wait([
         for (final entry in entries)
           (() async => (
-                entry: entry,
-                series: seriesNames[entry.parentId] ?? '',
-                bytes: await _directorySize(entry.folderPath),
-              ))(),
+            entry: entry,
+            series: seriesNames[entry.parentId] ?? '',
+            bytes: await _directorySize(entry.folderPath),
+          ))(),
       ]);
     } catch (error, stackTrace) {
       logger.e(
-          'DownloadedVolumesScreen: could not list downloads: $error\n$stackTrace');
+        'DownloadedVolumesScreen: could not list downloads: $error\n$stackTrace',
+      );
       rethrow;
     }
   }
@@ -85,12 +84,15 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
 
   Future<void> _delete(Entry entry) async {
     if (_deletingId != null) return;
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Remove downloaded volume?'),
-            content: Text('Remove the local copy of "${entry.title}"? '
-                'Reading progress and cached pages will be kept.'),
+            content: Text(
+              'Remove the local copy of "${entry.title}"? '
+              'Reading progress and cached pages will be kept.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, false),
@@ -114,8 +116,10 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(_downloadedFailureMessage(
-                  error, 'Could not remove download'))),
+            content: Text(
+              _downloadedFailureMessage(error, 'Could not remove download'),
+            ),
+          ),
         );
       }
     } finally {
@@ -132,8 +136,13 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
-                child: Text(_downloadedFailureMessage(
-                    snapshot.error, 'Could not list downloads')));
+              child: Text(
+                _downloadedFailureMessage(
+                  snapshot.error,
+                  'Could not list downloads',
+                ),
+              ),
+            );
           }
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
@@ -149,17 +158,23 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
             itemBuilder: (context, index) {
               final volume = volumes[index];
               return ListTile(
-                title: Text(volume.entry.title,
-                    maxLines: 2, overflow: TextOverflow.ellipsis),
-                subtitle: Text([
-                  if (volume.series.isNotEmpty) volume.series,
-                  _formatSize(volume.bytes),
-                ].join(' • ')),
+                title: Text(
+                  volume.entry.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  [
+                    if (volume.series.isNotEmpty) volume.series,
+                    _formatSize(volume.bytes),
+                  ].join(' • '),
+                ),
                 trailing: _deletingId == volume.entry.id
                     ? const SizedBox(
                         width: 24,
                         height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
                     : IconButton(
                         tooltip: 'Remove download',
                         icon: const Icon(Icons.delete_outline),

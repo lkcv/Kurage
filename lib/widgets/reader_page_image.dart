@@ -21,8 +21,7 @@ class ReaderPageImage extends StatefulWidget {
   final ValueListenable<double> zoomScale;
 
   @override
-  State<ReaderPageImage> createState() =>
-      _ReaderPageImageState();
+  State<ReaderPageImage> createState() => _ReaderPageImageState();
 }
 
 class _ReaderPageImageState extends State<ReaderPageImage> {
@@ -97,8 +96,10 @@ class _ReaderPageImageState extends State<ReaderPageImage> {
           builder: (context, zoom, _) {
             const blendStart = 1.10;
             const blendEnd = 1.40;
-            final t = ((zoom - blendStart) / (blendEnd - blendStart))
-                .clamp(0.0, 1.0);
+            final t = ((zoom - blendStart) / (blendEnd - blendStart)).clamp(
+              0.0,
+              1.0,
+            );
             final eased = t * t * (3.0 - 2.0 * t);
             return Stack(
               fit: StackFit.expand,
