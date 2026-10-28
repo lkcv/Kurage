@@ -62,8 +62,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
-  # flutter_launcher_icons: ^0.13.1
-  icons_launcher: any
   # hive_generator: ^2.0.0
   build_runner: '>=2.16.2 <2.17.0' # Isar generator 3.4.1 uses build 4.x.
   isar_community_generator: ^3.4.1
@@ -116,18 +114,3 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/custom-fonts/#from-packages
-
-
-# Icons
-icons_launcher:
-  image_path: 'assets/images/Icon.png'
-  platforms:
-    ios:
-      enable: true
-    android:
-      enable: true
-      adaptive_round_image: 'assets/images/Logo.png'
-      adaptive_background_color: '#E7E7E7'
-      adaptive_foreground_image: 'assets/images/IconRound.png'
-  # remove_alpha_ios: true
-
