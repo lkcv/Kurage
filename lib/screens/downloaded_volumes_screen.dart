@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/providers/delete_comic.dart';
@@ -144,7 +144,7 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
           }
           return ListView.separated(
             itemCount: volumes.length,
-            separatorBuilder: (_, __) =>
+            separatorBuilder: (_, _) =>
                 const Divider(height: 1, indent: 16, endIndent: 16),
             itemBuilder: (context, index) {
               final volume = volumes[index];

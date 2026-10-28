@@ -1,7 +1,7 @@
 // Shared eligibility policy for Library series and Collection volumes.
 // Keep the selection logic here; scrolling, pinning, and navigation remain
 // owned by their screens.
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/providers/supported_formats.dart';

@@ -1,6 +1,6 @@
 // The purpose of this file is to take the list of entries and create folders if their parentId is not one of the categories
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/supported_formats.dart';

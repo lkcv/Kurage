@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/cbz_stream.dart';

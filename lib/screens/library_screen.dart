@@ -13,7 +13,7 @@ import 'package:kurage/widgets/item_action_sheet.dart';
 import 'package:kurage/widgets/download_queue_sheet.dart';
 import 'package:kurage/providers/server_progress_revision.dart';
 import 'package:kurage/screens/collection_screen.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
@@ -710,7 +710,7 @@ class _LibraryScreenState extends State<LibraryScreen>
                   final folder = folders[index];
                   return ValueListenableBuilder<int>(
                     valueListenable: _progressRevision,
-                    builder: (context, _, __) => SeriesCard(
+                    builder: (context, _, _) => SeriesCard(
                       folder: folder,
                       onLongPress: () => _showSeriesActions(folder),
                       matchingCount:
@@ -919,7 +919,7 @@ class _LibraryScreenState extends State<LibraryScreen>
             left: 52,
             child: ValueListenableBuilder<int>(
               valueListenable: DownloadQueue.instance.headerChanges,
-              builder: (context, _, __) {
+              builder: (context, _, _) {
                 final manager = DownloadQueue.instance;
                 final pending = manager.pendingCount;
                 final failed = manager.failedCount;
@@ -1267,7 +1267,7 @@ class _LibraryCover extends StatelessWidget {
       image: provider,
       fit: BoxFit.cover,
       gaplessPlayback: true,
-      errorBuilder: (_, __, ___) =>
+      errorBuilder: (_, _, _) =>
           Image.asset('assets/images/NoCoverArt.png', fit: BoxFit.cover),
     );
   }

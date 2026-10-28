@@ -87,7 +87,7 @@ class _RoundedImageWithShadowState extends State<RoundedImageWithShadow> {
                   placeholderFadeInDuration: Duration.zero,
                   placeholder: (context, _) =>
                       Container(color: Colors.grey[900]),
-                  errorWidget: (context, _, __) => _fallback(),
+                  errorWidget: (context, _, _) => _fallback(),
                 );
               }
 

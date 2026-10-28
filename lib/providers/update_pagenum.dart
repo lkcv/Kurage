@@ -1,7 +1,7 @@
 // Synchronize CBZ page indices with Jellyfin without racing rapid page turns.
 import 'dart:async';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:package_info_plus/package_info_plus.dart' as p_info;
 import 'package:kurage/models/pending_progress_record.dart';
 import 'package:kurage/providers/jellyfin_api.dart';

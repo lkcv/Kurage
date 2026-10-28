@@ -195,7 +195,7 @@ class CbzStream {
       final request = _loadEntry(_pages[index], pageFile(index));
       request.then<void>((_) {
         _inflight.remove(index);
-      }, onError: (Object _, StackTrace __) {
+      }, onError: (Object _, StackTrace _) {
         _inflight.remove(index);
       });
       return request;

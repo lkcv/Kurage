@@ -117,10 +117,10 @@ class _CoverOpeningTransition extends StatelessWidget {
     return AnimatedBuilder(
       animation: Listenable.merge([
         animation,
-        if (pageReady != null) pageReady!,
-        if (openingState != null) openingState!,
-        if (skipReturnFade != null) skipReturnFade!,
-        if (returnTarget != null) returnTarget!,
+        ?pageReady,
+        ?openingState,
+        ?skipReturnFade,
+        ?returnTarget,
       ]),
       child: child,
       builder: (context, destination) {

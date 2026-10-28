@@ -1,6 +1,6 @@
 // The purpose of this file is to define how book/comic entries are stored in the database
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 
 part 'entry.g.dart';
 

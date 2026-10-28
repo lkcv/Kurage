@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:kurage/screens/home_screen.dart';
 
 import 'package:kurage/variables.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/login.dart';
 
 class LoginScreen extends StatefulWidget {

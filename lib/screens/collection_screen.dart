@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/providers/volume_sort.dart';
@@ -993,7 +993,7 @@ class KuroStyleBookCardState extends State<KuroStyleBookCard> {
                         child: ValueListenableBuilder<int>(
                           valueListenable:
                               widget.progressRevision ?? serverProgressRevision,
-                          builder: (context, _, __) {
+                          builder: (context, _, _) {
                             final isUnread =
                                 LibraryFilter.isUnread(widget.entry);
                             final isFinished =
@@ -1040,7 +1040,7 @@ class KuroStyleBookCardState extends State<KuroStyleBookCard> {
                     child: ValueListenableBuilder<int>(
                       valueListenable:
                               widget.progressRevision ?? serverProgressRevision,
-                      builder: (context, _, __) => LinearProgressIndicator(
+                      builder: (context, _, _) => LinearProgressIndicator(
                         value: (widget.entry.progress / 100).clamp(0.0, 1.0),
                         backgroundColor: scheme.outlineVariant,
                         valueColor:

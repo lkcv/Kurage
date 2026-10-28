@@ -8,7 +8,7 @@ import 'package:kurage/providers/folder_provider.dart';
 import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/models/folder.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/providers/session_store.dart';
 import 'package:kurage/variables.dart';
 

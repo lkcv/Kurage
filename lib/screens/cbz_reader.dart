@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kurage/providers/update_pagenum.dart';
 import 'package:kurage/providers/download_queue.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/providers/app_settings_store.dart';

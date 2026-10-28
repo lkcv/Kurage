@@ -9,7 +9,7 @@ import 'package:kurage/models/folder.dart';
 import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/providers/update_pagenum.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/variables.dart';
 
 // get comics

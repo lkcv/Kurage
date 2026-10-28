@@ -203,7 +203,7 @@ class LibraryCoverPrewarmer {
         stream.addListener(listener);
         await ready.future;
       } else {
-        await precacheImage(imageProvider, context(), onError: (_, __) {});
+        await precacheImage(imageProvider, context(), onError: (_, _) {});
       }
     } catch (_) {
       // Missing or offline covers must not hold up the startup gate.

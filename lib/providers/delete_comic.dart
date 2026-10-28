@@ -1,7 +1,7 @@
 // Remove a local download without removing its Jellyfin/Isar library entry.
 import 'dart:io';
 
-import 'package:isar/isar.dart';
+import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/variables.dart';
 import 'package:path_provider/path_provider.dart';

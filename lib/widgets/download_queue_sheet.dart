@@ -70,7 +70,7 @@ class DownloadQueueSheet extends StatelessWidget {
                     child: ListView.separated(
                       shrinkWrap: true,
                       itemCount: jobs.length,
-                      separatorBuilder: (_, __) => const Divider(height: 18),
+                      separatorBuilder: (_, _) => const Divider(height: 18),
                       itemBuilder: (context, index) {
                         final job = jobs[index];
                         final active = job.state == DownloadJobState.downloading;
