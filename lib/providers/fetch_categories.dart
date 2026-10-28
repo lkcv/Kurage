@@ -177,17 +177,6 @@ Future<(List<Entry>, List<Folder>)> getServerCategories({
   }
 }
 
-Future<(int, List<Entry>)> fetchEntries(int offset, int limit) async {
-  final isar = Isar.getInstance();
-  QueryBuilder<Entry, Entry, QAfterFilterCondition> typeNotBook =
-      isar!.entrys.filter().not().typeEqualTo(EntryType.folder);
-  List<Entry> entries = await typeNotBook.sortByTitle().findAll();
-  entries = entries.where(isSupportedEntry).skip(offset).take(limit).toList();
-  int length = entries.length;
-  logger.f("entries: ${entries.length}");
-  return (length, entries);
-}
-
 // check to see if a folder isn't a subfolder of another folder
 Future<List<Map<String, dynamic>>> compareFolders(
   List<Map<String, dynamic>> folders,

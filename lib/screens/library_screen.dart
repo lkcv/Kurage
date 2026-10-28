@@ -21,7 +21,6 @@ import 'package:kurage/variables.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/library_cover_prewarmer.dart';
 import 'package:kurage/cache/speculative_cover_prefetcher.dart';
-import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/error_classification.dart';
@@ -41,22 +40,10 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen>
     with WidgetsBindingObserver {
-  static const _pageSize = 20;
   static const double _gridTopGap = 12;
 
   double _headerHeight(BuildContext context) =>
       MediaQuery.paddingOf(context).top + FloatingSurfaceHeader.toolbarHeight;
-  late final PagingController<int, Entry> _pagingController =
-      PagingController<int, Entry>(
-    getNextPageKey: (state) {
-      if (state.pages == null) return 0;
-      final lastPage = state.pages!.last;
-      if (lastPage.length < _pageSize) return null;
-      return state.keys!.last + lastPage.length;
-    },
-    fetchPage: _fetchPage,
-  );
-
   late Future<(List<Entry>, List<Folder>)> _categoriesFuture;
   late final LibraryCoverPrewarmer _coverPrewarmer = LibraryCoverPrewarmer(
     canSchedule: () => mounted && _inForeground && _lastFolders != null,
@@ -515,7 +502,6 @@ class _LibraryScreenState extends State<LibraryScreen>
         _wasOffline = false;
         if (mounted) {
           logger.d('LibraryScreen: connection restored, refreshing library');
-          _pagingController.refresh();
           unawaited(_reloadCategories());
         }
       } else {
@@ -815,13 +801,6 @@ class _LibraryScreenState extends State<LibraryScreen>
     );
   }
 
-  Future<List<Entry>> _fetchPage(int pageKey) async {
-    logger.i('pageKey: $pageKey');
-    final result = await fetchEntries(pageKey, _pageSize);
-    logger.i("result.\$1: ${result.$1}");
-    return result.$2;
-  }
-
   @override
   void dispose() {
     _stopSpeculative();
@@ -838,7 +817,6 @@ class _LibraryScreenState extends State<LibraryScreen>
     _downloadedReadingScrollController.dispose();
     _connectionManager?.removeListener(_onConnectionChanged);
     _progressRevision.dispose();
-    _pagingController.dispose();
     super.dispose();
   }
 
@@ -876,7 +854,6 @@ class _LibraryScreenState extends State<LibraryScreen>
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                _pagingController.refresh();
                 unawaited(_reloadCategories());
               },
               child: const Text("Retry"),
@@ -1062,7 +1039,6 @@ class _LibraryScreenState extends State<LibraryScreen>
         // Keep the spinner below the translucent header, without moving the grid.
         edgeOffset: headerHeight,
         onRefresh: () async {
-          _pagingController.refresh();
           await _reloadCategories();
         },
         child: FutureBuilder<(List<Entry>, List<Folder>)>(
