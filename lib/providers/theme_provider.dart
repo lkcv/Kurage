@@ -111,24 +111,29 @@ class ThemeChangeNotifier extends ChangeNotifier {
       return base.copyWith(colorScheme: _defaultScheme(base.colorScheme));
     }
 
-    // Keep Material's two-tone color generation, including the Reader's
-    // separate slider/thumbnail and page-counter colors.
-    final palette = ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: base.brightness,
-    );
+    // Keep the Reader's control tone separate from the accent-colored page
+    // counter. Curated pairs are explicit for each brightness mode.
+    final option = AccentPalette.forColor(accent);
+    final tone = option?.toneFor(base.brightness) ?? accent;
+    final foreground = base.brightness == Brightness.dark
+        ? Colors.black
+        : Colors.white;
     return base.copyWith(
       colorScheme: base.colorScheme.copyWith(
-        primary: palette.primary,
-        onPrimary: palette.onPrimary,
+        primary: tone,
+        onPrimary: foreground,
         primaryContainer: accent,
         // Keep accent-container foregrounds consistent across theme modes.
         onPrimaryContainer: Colors.white,
-        inversePrimary: palette.inversePrimary,
-        secondary: palette.secondary,
-        onSecondary: palette.onSecondary,
-        secondaryContainer: palette.secondaryContainer,
-        onSecondaryContainer: palette.onSecondaryContainer,
+        inversePrimary: option?.toneFor(
+              base.brightness == Brightness.dark
+                  ? Brightness.light
+                  : Brightness.dark,
+            ) ?? tone,
+        secondary: tone,
+        onSecondary: foreground,
+        secondaryContainer: accent,
+        onSecondaryContainer: Colors.white,
       ),
     );
   }

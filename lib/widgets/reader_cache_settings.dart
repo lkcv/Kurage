@@ -163,6 +163,7 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
   @override
   Widget build(BuildContext context) {
     final maximumBytes = _limitMb * 1024 * 1024;
+    final trackColor = Theme.of(context).colorScheme.surfaceContainerHighest;
     final usageFraction = maximumBytes > 0
         ? (_usageBytes / maximumBytes).clamp(0.0, 1.0).toDouble()
         : 0.0;
@@ -214,7 +215,9 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                       ),
                       const SizedBox(height: 12),
                       if (_loading)
-                        const LinearProgressIndicator()
+                        LinearProgressIndicator(
+                          backgroundColor: trackColor,
+                        )
                       else
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,7 +242,10 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            LinearProgressIndicator(value: usageFraction),
+                            LinearProgressIndicator(
+                              value: usageFraction,
+                              backgroundColor: trackColor,
+                            ),
                           ],
                         ),
                       if (_error != null)

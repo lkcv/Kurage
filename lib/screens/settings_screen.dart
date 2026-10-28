@@ -320,11 +320,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return AccentPalette.forColor(accent)?.name ?? 'Custom';
   }
 
-  Color _accentCompanion(Color accent) {
-    return ColorScheme.fromSeed(
-      seedColor: accent,
-      brightness: Theme.of(context).brightness,
-    ).primary;
+  Color _accentTone(Color accent) {
+    return AccentPalette.forColor(accent)
+            ?.toneFor(Theme.of(context).brightness) ??
+        accent;
   }
 
   Widget _accentPreviewCircle({
@@ -338,7 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final defaultScheme = isDefault
         ? ThemeChangeNotifier.defaultColorScheme(Theme.of(context).brightness)
         : null;
-    final companion = defaultScheme?.primary ?? _accentCompanion(accent);
+    final companion = defaultScheme?.primary ?? _accentTone(accent);
     final dominant = defaultScheme?.primaryContainer ?? accent;
     final preview = SizedBox(
       width: size,
