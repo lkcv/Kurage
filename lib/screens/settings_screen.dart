@@ -149,20 +149,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Card(
               child: Column(
                 children: [
-                  ListTile(
-                    leading: const Icon(Icons.description_outlined),
-                    title: Text("Licenses"),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () {
-                      showLicensePage(
-                        context: context,
-                        applicationName: 'Jellybook',
-                        applicationVersion: version,
-                        applicationIcon: Image.asset('assets/images/Logo.png'),
-                        applicationLegalese:
-                            'MIT License. Made with love by Kara Wilson',
-                      );
-                    },
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      appBarTheme: Theme.of(context).appBarTheme.copyWith(
+                        toolbarHeight: FloatingSurfaceHeader.toolbarHeight,
+                        backgroundColor: FloatingSurfacePalette.topBarBackground(
+                          headerBrightness,
+                        ),
+                        foregroundColor: headerForeground,
+                        centerTitle: true,
+                        elevation: 0,
+                        scrolledUnderElevation: 0,
+                        surfaceTintColor: Colors.transparent,
+                        titleTextStyle: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: headerForeground,
+                        ),
+                      ),
+                    ),
+                    child: Builder(
+                      builder: (licenseContext) => ListTile(
+                        leading: const Icon(Icons.description_outlined),
+                        title: const Text('Licenses'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => showLicensePage(
+                          context: licenseContext,
+                          applicationName: 'Kurage',
+                          applicationVersion: version,
+                          applicationLegalese:
+                              'Originally based on JellyBook. Licensed under MIT.',
+                        ),
+                      ),
+                    ),
                   ),
                   const Divider(height: 1, indent: 16, endIndent: 16),
                   ListTile(
