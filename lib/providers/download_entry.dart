@@ -6,7 +6,6 @@ import 'package:isar/isar.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/cbz_stream.dart';
-import 'package:kurage/providers/comic_info_xml.dart';
 import 'package:kurage/providers/file_name_from_title.dart';
 import 'package:kurage/providers/download_exceptions.dart';
 import 'package:kurage/providers/supported_formats.dart';
@@ -263,7 +262,6 @@ Future<Entry> downloadEntry(
     ];
     await File('${staging.path}/.kurage-page-names.json')
         .writeAsString(jsonEncode(names), flush: true);
-    await stream.getComicInfo(File('${staging.path}/ComicInfo.xml'));
     await File('${staging.path}/.kurage-complete.json')
         .writeAsString(jsonEncode(identity), flush: true);
     if (await manifest.exists()) await manifest.delete();
@@ -284,13 +282,6 @@ Future<Entry> downloadEntry(
     await isar.writeTxn(() async => isar.entrys.put(entry));
     committed = true;
     onProgress(100);
-    if (await File('${finalDirectory.path}/ComicInfo.xml').exists()) {
-      try {
-        await parseXML(entry);
-      } catch (error) {
-        logger.w('Could not read ComicInfo.xml for ${entry.id}: $error');
-      }
-    }
     try {
       if (await backup.exists()) await backup.delete(recursive: true);
     } catch (error) {

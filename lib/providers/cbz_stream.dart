@@ -64,7 +64,6 @@ class CbzStream {
   late Directory _cacheDir;
   int _totalSize = 0;
   List<_ZipEntry> _pages = [];
-  _ZipEntry? _comicInfo;
   bool _ready = false;
   String _fingerprint = '';
   final Map<int, Future<File>> _inflight = {};
@@ -172,8 +171,7 @@ class CbzStream {
           : latin1.decode(nameBytes);
       p = next;
       final isPage = exts.any((ext) => name.toLowerCase().endsWith(ext));
-      final isComicInfo = name.split('/').last.toLowerCase() == 'comicinfo.xml';
-      if (!isPage && !isComicInfo) continue;
+      if (!isPage) continue;
       if ((flags & 1) != 0 || (method != 0 && method != 8) ||
           compressed == 0xffffffff || uncompressed == 0xffffffff ||
           offset == 0xffffffff) {
@@ -181,8 +179,7 @@ class CbzStream {
       }
       final entry = _ZipEntry(
           name, offset, compressed, uncompressed, method, crc);
-      if (isPage) entries.add(entry);
-      if (isComicInfo && _comicInfo == null) _comicInfo = entry;
+      entries.add(entry);
     }
     if (entries.isEmpty) throw const FormatException('No CBZ pages found');
     entries.sort((a, b) => a.name.compareTo(b.name));
@@ -203,13 +200,6 @@ class CbzStream {
       });
       return request;
     });
-  }
-
-  Future<File?> getComicInfo(File destination) async {
-    if (!_ready) await init();
-    final info = _comicInfo;
-    if (info == null) return null;
-    return _loadEntry(info, destination);
   }
 
   Future<File> _loadEntry(_ZipEntry entry, File target) async {
