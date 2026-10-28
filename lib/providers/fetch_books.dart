@@ -66,11 +66,11 @@ Future<Set<String>> getComics(String comicsId) async {
   final serverIds = <String>{};
   for (final raw in responseData) {
     final element = raw as Map<String, dynamic>;
-    // Jellyfin can flag a one-volume series directory as IsFolder while its
-    // item type is still Book. Treat those as books, not folders.
+    // Jellyfin can flag one-volume series as IsFolder even when Type is Book.
+    // Keep those as books while recognizing genuine folders.
     final jellyfinKind = (element['Type'] as String? ?? '').toLowerCase();
-    final isRealFolder =
-        element['IsFolder'] == true && jellyfinKind != 'book';
+    final isFolder = jellyfinKind == 'folder' ||
+        (element['IsFolder'] == true && jellyfinKind != 'book');
     final imageTags = element['ImageTags'] as Map<String, dynamic>?;
     final itemId = element['Id'] as String? ?? '';
     if (itemId.isEmpty) throw StateError('Jellyfin item without an ID');
@@ -84,20 +84,10 @@ Future<Set<String>> getComics(String comicsId) async {
           : 'Asset',
       path: element['Path'] as String? ?? '',
       url: url,
-      type: isRealFolder ? EntryType.folder : EntryType.book,
+      type: isFolder ? EntryType.folder : EntryType.book,
       parentId: element['ParentId'] as String? ?? '',
       downloaded: false,
     );
-    List<String> comicFileTypes = ['cbz', 'zip'];
-
-    String entryPath = (element['Path'] as String?).toString().toLowerCase();
-    // Audio entries are excluded by the shared format policy.
-    if (jellyfinKind == 'folder') {
-      entry.type = EntryType.folder;
-    } else if (comicFileTypes.contains(entryPath)) {
-      entry.type = EntryType.comic;
-    }
-
     // Do not import newly encountered unsupported files. Previously stored
     // rows remain in Isar but are hidden by the same format policy.
     if (!isSupportedEntry(entry)) continue;
@@ -110,8 +100,8 @@ Future<Set<String>> getComics(String comicsId) async {
       entry.folderPath = previous.folderPath;
       entry.pageNum = previous.pageNum;
     }
-    // Jellyfin reports comic page indices as 10,000 ticks per zero-based
-    // page. Only CBZ/ZIP progress uses this convention; EPUB is separate.
+    // Jellyfin reports CBZ/ZIP page indices as 10,000 ticks per zero-based
+    // page.
     // A pending local upload or a page change during the GET wins over this
     // potentially stale server snapshot.
     final extension = entryFileExtension(entry.path);
