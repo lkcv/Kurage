@@ -48,7 +48,6 @@ dependencies:
   auto_size_text: ^3.0.0
   google_nav_bar: ^5.0.7
   cached_network_image: ^3.4.1
-  string_similarity: ^2.0.0
   connectivity_plus: ^7.3.1
 
   device_info_plus: ^13.2.0

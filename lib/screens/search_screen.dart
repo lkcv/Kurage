@@ -14,7 +14,6 @@ import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
 import 'package:kurage/widgets/volume_actions.dart';
 import 'package:provider/provider.dart';
-import 'package:string_similarity/string_similarity.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/screens/collection_screen.dart' show KuroStyleBookCard;
 
@@ -417,14 +416,9 @@ class _SearchScreenState extends State<SearchScreen> {
       return;
     }
 
-    // Title matches come first, so typing a series name remains predictable.
-    // Preserve the existing fuzzy search for queries with no direct matches.
-    final direct = _catalog
+    final matches = _catalog
         .where((entry) => entry.title.toLowerCase().contains(query))
         .toList();
-    final matches = direct.isNotEmpty
-        ? direct
-        : diceCoefficientRankings(query, _catalog);
     matches.sort((a, b) => _naturalTitleCompare(a.title, b.title));
     setState(() => searchResults = matches);
   }
@@ -447,126 +441,5 @@ class _SearchScreenState extends State<SearchScreen> {
       if (comparison != 0) return comparison;
     }
     return aParts.length.compareTo(bParts.length);
-  }
-
-  List<Entry> diceCoefficientRankings(String searchQuery, List<Entry> books) {
-    // first we will use the entire search query, then we will compare the individual words in the search query to the individual words in the title
-    searchQuery = searchQuery.toLowerCase();
-    List<String> titles = [];
-    List<Map<double, Entry>> rankings = [];
-    books.forEach((element) {
-      titles.add(element.title.toLowerCase());
-    });
-
-    titles.forEach((element) {
-      // rank similarity of the entire search query to the title
-      double similarity = searchQuery.similarityTo(element);
-      List<String> searchWords = searchQuery.split(" ");
-      List<String> titleWords = element.split(" ");
-
-      // now we will compare the individual words in the search query to the individual words in the title
-      double wordSimilarity = 0;
-      searchWords.forEach((searchWord) {
-        titleWords.forEach((titleWord) {
-          wordSimilarity += searchWord.similarityTo(titleWord);
-        });
-      });
-      wordSimilarity =
-          wordSimilarity / (searchWords.length * titleWords.length);
-
-      double finalSimilarity = (similarity + 2 * wordSimilarity) / 2;
-
-      rankings.add({finalSimilarity: books[titles.indexOf(element)]});
-    });
-    // now we will sort the rankings
-    rankings.sort((a, b) => b.keys.first.compareTo(a.keys.first));
-    // now we will convert the rankings to a list of books
-    List<Entry> results = [];
-    rankings.forEach((element) {
-      results.add(element.values.first);
-    });
-    double div = searchQuery.length / 10;
-    // remove anything before the decimal
-    div = div - div.floor();
-
-    return results
-        .where((element) =>
-            rankings[results.indexOf(element)].keys.first >= 0.4 * (1 - div))
-        .toList();
-  }
-
-  List<Entry> diceCoefficientRankings2(String searchQuery, List<Entry> books) {
-    searchQuery = searchQuery.toLowerCase();
-    List<String> titles = [];
-    List<Map<double, Entry>> rankings = [];
-    books.forEach((element) {
-      titles.add(element.title.toLowerCase());
-    });
-
-    titles.forEach((element) {
-      // rank similarity of the entire search query to the title
-      double similarity = searchQuery.similarityTo(element);
-      List<String> searchWords = searchQuery.split(" ");
-      List<String> titleWords = element.split(" ");
-
-      // now we will compare the individual words in the search query to the individual words in the title
-      double wordSimilarity = 0;
-      searchWords.forEach((searchWord) {
-        titleWords.forEach((titleWord) {
-          wordSimilarity += searchWord.similarityTo(titleWord);
-        });
-      });
-      wordSimilarity =
-          wordSimilarity / (searchWords.length * titleWords.length);
-
-      double finalSimilarity = (similarity + 2 * wordSimilarity) / 2;
-
-      rankings.add({finalSimilarity: books[titles.indexOf(element)]});
-    });
-
-    // Use quicksort to sort the rankings
-    quicksort(rankings, 0, rankings.length - 1);
-
-    // now we will convert the rankings to a list of books
-    List<Entry> results = [];
-    rankings.forEach((element) {
-      results.add(element.values.first);
-    });
-    double div = searchQuery.length / 10;
-    // remove anything before the decimal
-    div = div - div.floor();
-
-// return first 20 results (or less if there are less than 20 results)
-    return results.toList().sublist(0, min(20, results.length));
-
-    // return results
-    //     .where((element) =>
-    //         rankings[results.indexOf(element)].keys.first >= 0.4 * (1 - div))
-    //     .toList();
-  }
-
-  void quicksort(List<Map<double, Entry>> rankings, int low, int high) {
-    if (low < high) {
-      int pivotIndex = partition(rankings, low, high);
-      quicksort(rankings, low, pivotIndex - 1);
-      quicksort(rankings, pivotIndex + 1, high);
-    }
-  }
-
-  int partition(List<Map<double, Entry>> rankings, int low, int high) {
-    double pivot = rankings[high].keys.first;
-    int i = low - 1;
-    for (int j = low; j < high; j++) {
-      if (rankings[j].keys.first < pivot) {
-        i++;
-        Map<double, Entry> temp = rankings[i];
-        rankings[i] = rankings[j];
-        rankings[j] = temp;
-      }
-    }
-    Map<double, Entry> temp = rankings[i + 1];
-    rankings[i + 1] = rankings[high];
-    rankings[high] = temp;
-    return i + 1;
   }
 }

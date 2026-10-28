@@ -867,14 +867,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
-  string_similarity:
-    dependency: "direct main"
-    description:
-      name: string_similarity
-      sha256: "3ee1fc76e0c800aeb3dce197e28ed8541b622224d09b10c34a022803066a7c50"
-      url: "https://pub.dev"
-    source: hosted
-    version: "2.2.0"
   synchronized:
     dependency: transitive
     description:
