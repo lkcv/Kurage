@@ -569,18 +569,20 @@ class _LibraryScreenState extends State<LibraryScreen>
           ItemSheetAction(
             value: _SeriesAction.downloadRemaining,
             icon: Icons.download_rounded,
-            label:
-                'Download remaining ${missing.length} '
-                '${missing.length == 1 ? 'volume' : 'volumes'}',
-            subtitle: 'Add missing volumes to the download queue',
+            label: missing.length == 1
+                ? 'Download remaining volume'
+                : 'Download ${missing.length} remaining volumes',
+            subtitle:
+                'Add missing ${missing.length == 1 ? 'volume' : 'volumes'} '
+                'to the download queue',
           ),
         if (downloaded.isNotEmpty)
           ItemSheetAction(
             value: _SeriesAction.deleteDownloaded,
             icon: Icons.delete_outline_rounded,
-            label:
-                'Delete ${downloaded.length} downloaded '
-                '${downloaded.length == 1 ? 'volume' : 'volumes'}',
+            label: downloaded.length == 1
+                ? 'Delete downloaded volume'
+                : 'Delete ${downloaded.length} downloaded volumes',
             subtitle: 'Keep reading progress and cached pages',
             destructive: true,
           ),
