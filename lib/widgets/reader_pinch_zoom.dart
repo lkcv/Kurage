@@ -166,11 +166,12 @@ class ReaderPinchZoomState extends State<ReaderPinchZoom> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: AnimatedBuilder(
-        animation: _transform,
-        child: widget.child,
-        builder: (context, child) => Transform(
+    return AnimatedBuilder(
+      animation: _transform,
+      child: widget.child,
+      builder: (context, child) => ClipRect(
+        clipBehavior: isZoomed ? Clip.hardEdge : Clip.none,
+        child: Transform(
           alignment: Alignment.topLeft,
           transform: _transform.value,
           child: child,
