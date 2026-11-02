@@ -940,8 +940,10 @@ class _VolumeReaderSessionState extends State<_VolumeReaderSession> {
       openingState: widget.openingState,
       skipReturnFade: widget.skipReturnFade,
       nextVolumeTitle: _adjacent(1)?.title,
+      nextVolumeCover: _adjacent(1)?.imagePath,
       onNextVolume: () => _openAdjacent(1),
       previousVolumeTitle: _adjacent(-1)?.title,
+      previousVolumeCover: _adjacent(-1)?.imagePath,
       onPreviousVolume: () => _openAdjacent(-1),
       onPrepareCoverReturn: _changedVolume ? _prepareCoverReturn : null,
       // Returning to the initially tapped volume can still be a reload;

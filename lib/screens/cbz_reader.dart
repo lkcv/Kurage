@@ -20,9 +20,39 @@ import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/cbz_stream.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/cache/reader_prefilter_cache.dart';
+import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/widgets/reader_pinch_zoom.dart';
 import 'package:kurage/widgets/reader_page_image.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
+
+// Keep the native Android stretch armed through insignificant scroll updates
+// while a boundary swipe is waiting for release.
+class _ReaderScrollBehavior extends MaterialScrollBehavior {
+  const _ReaderScrollBehavior(this.isVolumeSwipeArmed);
+
+  final bool Function() isVolumeSwipeArmed;
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) {
+    if (getPlatform(context) != TargetPlatform.android ||
+        !Theme.of(context).useMaterial3) {
+      return super.buildOverscrollIndicator(context, child, details);
+    }
+
+    return StretchingOverscrollIndicator(
+      axisDirection: details.direction,
+      clipBehavior: details.decorationClipBehavior ?? Clip.hardEdge,
+      notificationPredicate: (notification) =>
+          notification.depth == 0 &&
+          !(isVolumeSwipeArmed() && notification is ScrollUpdateNotification),
+      child: child,
+    );
+  }
+}
 
 class CbzReader extends StatefulWidget {
   final String title;
@@ -37,8 +67,10 @@ class CbzReader extends StatefulWidget {
 
   /// Available only when reading directly from an ordered Collection session.
   final String? nextVolumeTitle;
+  final String? nextVolumeCover;
   final Future<String?> Function()? onNextVolume;
   final String? previousVolumeTitle;
+  final String? previousVolumeCover;
   final Future<String?> Function()? onPreviousVolume;
 
   /// Prepare the active volume's cover position before popping this route.
@@ -54,8 +86,10 @@ class CbzReader extends StatefulWidget {
     this.openingState,
     this.skipReturnFade,
     this.nextVolumeTitle,
+    this.nextVolumeCover,
     this.onNextVolume,
     this.previousVolumeTitle,
+    this.previousVolumeCover,
     this.onPreviousVolume,
     this.onPrepareCoverReturn,
     this.continuingVolume = false,
@@ -109,6 +143,8 @@ class _CbzReaderState extends State<CbzReader>
   bool _volumeSwipePending = false;
   String? _volumeSwipeMessage;
   Timer? _volumeSwipeMessageTimer;
+  Offset? _volumeSwipeOrigin;
+  double _volumeSwipeReversal = 0;
   // A zoomed page owns the first drag. Only a fresh swipe that STARTS at an
   // image boundary is allowed to turn exactly one page.
   Offset? _singleFingerStart;
@@ -1152,6 +1188,8 @@ class _CbzReaderState extends State<CbzReader>
       // Take a snapshot of the boundaries BEFORE any movement. Reaching an
       // edge during this gesture must not trigger an unexpected page turn.
       _singleFingerStart = event.position;
+      _volumeSwipeOrigin = event.position;
+      _volumeSwipeReversal = 0;
       _edgePositiveAtStart =
           !_edgePageTurnPending &&
           (zoom?.atPanBoundary(vertical: vertical, positive: true) ?? false);
@@ -1195,30 +1233,44 @@ class _CbzReaderState extends State<CbzReader>
       _panVelocityTracker?.addPosition(event.timeStamp, event.position);
     }
 
-    // Observe only an extra swipe that begins at either volume boundary.
-    // Suppress the fleeting early "Next:" preview: show only the release pill
-    // once the swipe is long enough to actually open a neighboring volume.
+    // A reversal cancels the armed transition immediately. Start a fresh
+    // 72px pull from the reversal point without requiring another touch.
     if ((_canSwipeNext || _canSwipePrevious) &&
         _readerTouches.length == 1 &&
         !_gestureHadMultitouch &&
         !_edgePageTurnPending) {
-      final start = _singleFingerStart;
-      if (start != null) {
-        final travel = event.position - start;
-        final vertical = direction == 'vertical';
-        final forward = vertical
-            ? -travel.dy
-            : (direction == 'rtl' ? travel.dx : -travel.dx);
-        final cross = vertical ? travel.dx.abs() : travel.dy.abs();
-        final directionDelta = forward > 0 ? 1 : -1;
-        final available = directionDelta == 1
-            ? _canSwipeNext
-            : _canSwipePrevious;
-        final armed =
-            available && forward.abs() >= 72 && forward.abs() > cross * 1.3;
-        final nextDelta = armed ? directionDelta : 0;
-        if (_volumeSwipeDelta != nextDelta) {
-          setState(() => _volumeSwipeDelta = nextDelta);
+      final vertical = direction == 'vertical';
+      final step = event.position - previous;
+      final forwardStep = vertical
+          ? -step.dy
+          : (direction == 'rtl' ? step.dx : -step.dx);
+      if (_volumeSwipeDelta != 0 && forwardStep * _volumeSwipeDelta < 0) {
+        // A tiny reverse movement can be touch jitter while holding still.
+        _volumeSwipeReversal -= forwardStep * _volumeSwipeDelta;
+        if (_volumeSwipeReversal >= 6) {
+          _volumeSwipeOrigin = event.position;
+          _volumeSwipeReversal = 0;
+          setState(() => _volumeSwipeDelta = 0);
+        }
+      } else {
+        _volumeSwipeReversal = 0;
+        final start = _volumeSwipeOrigin;
+        if (start != null) {
+          final travel = event.position - start;
+          final forward = vertical
+              ? -travel.dy
+              : (direction == 'rtl' ? travel.dx : -travel.dx);
+          final cross = vertical ? travel.dx.abs() : travel.dy.abs();
+          final directionDelta = forward > 0 ? 1 : -1;
+          final available = directionDelta == 1
+              ? _canSwipeNext
+              : _canSwipePrevious;
+          final armed =
+              available && forward.abs() >= 72 && forward.abs() > cross * 1.3;
+          final nextDelta = armed ? directionDelta : 0;
+          if (_volumeSwipeDelta != nextDelta) {
+            setState(() => _volumeSwipeDelta = nextDelta);
+          }
         }
       }
     }
@@ -1352,6 +1404,8 @@ class _CbzReaderState extends State<CbzReader>
     // may still be moving, which must not turn the page at 1x.
     _firstTouchPage = null;
     _singleFingerStart = null;
+    _volumeSwipeOrigin = null;
+    _volumeSwipeReversal = 0;
     _edgePositiveAtStart = false;
     _edgeNegativeAtStart = false;
     if (_edgePageTurnPending) return; // Wait for page transition to finish.
@@ -1418,43 +1472,77 @@ class _CbzReaderState extends State<CbzReader>
         (title == null
             ? (next ? 'End of series' : 'Beginning of series')
             : 'Release to open $title');
+    final coverPath = next ? widget.nextVolumeCover : widget.previousVolumeCover;
+    final cover = _volumeSwipeMessage == null && title != null
+        ? coverImageProvider(coverPath ?? '')
+        : null;
     return Center(
       child: IgnorePointer(
         child: ConstrainedBox(
           constraints: BoxConstraints(
             maxWidth: MediaQuery.sizeOf(context).width * 0.82,
           ),
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: const Color(0xED252525),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white24),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.menu_book_rounded,
-                    color: Colors.white,
-                    size: 19,
-                  ),
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Text(
-                      message,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (cover != null) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: SizedBox(
+                    width: 150,
+                    height: 215,
+                    child: Image(
+                      image: cover,
+                      fit: BoxFit.contain,
+                      gaplessPlayback: true,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Image.asset(
+                            'assets/images/NoCoverArt.png',
+                            fit: BoxFit.cover,
+                          ),
                     ),
                   ),
-                ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xED252525),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (cover == null) ...[
+                        const Icon(
+                          Icons.menu_book_rounded,
+                          color: Colors.white,
+                          size: 19,
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                      Flexible(
+                        child: Text(
+                          message,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -1593,6 +1681,7 @@ class _CbzReaderState extends State<CbzReader>
         reverse: isRtl,
         itemCount: pageNums,
         controller: _pageController,
+        scrollBehavior: _ReaderScrollBehavior(() => _volumeSwipeDelta != 0),
         physics: _zoomScrollLocked
             ? const NeverScrollableScrollPhysics()
             : null,
