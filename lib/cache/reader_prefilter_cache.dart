@@ -121,6 +121,14 @@ class ReaderPrefilterCache extends ChangeNotifier {
     _pump();
   }
 
+  /// Retry missing entries after resuming; retain already prepared images.
+  void retryMissing() {
+    if (_closed) return;
+    _attempted.removeWhere((index) => !_ready.containsKey(index));
+    _capacityDeferred.clear();
+    _pump();
+  }
+
   void clear() {
     ++_generation;
     _tapRetryTimer?.cancel();

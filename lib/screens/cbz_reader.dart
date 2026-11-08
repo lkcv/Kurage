@@ -101,7 +101,7 @@ class CbzReader extends StatefulWidget {
 }
 
 class _CbzReaderState extends State<CbzReader>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late String title;
   late String comicId;
   int pageNum = 0;
@@ -113,6 +113,7 @@ class _CbzReaderState extends State<CbzReader>
   bool _loading = true;
   bool _showOverlay = false;
   bool _exiting = false;
+  bool _appResumed = true;
   int _currentPage = 0;
   int? _pendingLocalPage;
   bool _savingLocalProgress = false;
@@ -183,6 +184,7 @@ class _CbzReaderState extends State<CbzReader>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     title = widget.title;
     comicId = widget.comicId;
     _initialLoad = _load();
@@ -191,7 +193,29 @@ class _CbzReaderState extends State<CbzReader>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appResumed = state == AppLifecycleState.resumed;
+    if (!_appResumed) {
+      _updatePrefilterPause();
+      return;
+    }
+
+    // Restore decoded neighbors after the first resumed frame, without
+    // discarding images that survived in either cache.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_appResumed) return;
+      if (!_loading && !_exiting && pageNums > 0) {
+        _precacheAround(_currentPage);
+        _prefilter.retryMissing();
+      }
+      _updatePrefilterPause();
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     DownloadQueue.instance.removeListener(_onDownloadQueueChanged);
     _volumeSwipeMessageTimer?.cancel();
     _pageController?.dispose();
@@ -614,7 +638,8 @@ class _CbzReaderState extends State<CbzReader>
     final opening = widget.openingReady?.value == false;
     final tapActive = _tapTicker.isActive;
     // Targeted resizes may run during tap animation, but not drag scrolling.
-    final hardPaused = touches || opening || (_pagerScrolling && !tapActive);
+    final hardPaused =
+        !_appResumed || touches || opening || (_pagerScrolling && !tapActive);
     _prefilter.setActivity(
       hardPaused: hardPaused,
       allowTapFinishDuringTouch:
