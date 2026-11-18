@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/providers/login.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:provider/provider.dart';

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/themes/theme_constants.dart';
 
 /// Shared 36dp top bar and translucent concave corners.

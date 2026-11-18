@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/providers/download_queue.dart';
 import 'package:kurage/providers/error_classification.dart';
 

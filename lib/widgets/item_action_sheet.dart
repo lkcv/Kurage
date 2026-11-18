@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 /// A selectable action in the shared series/volume bottom sheet.

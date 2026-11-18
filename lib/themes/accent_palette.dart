@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Curated accent colors. [toneDark] and [toneLight] are the paired colors
 /// used by controls and picker previews; [gradientEnd] colors navigation bars.

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kurage/screens/downloaded_volumes_screen.dart';
 import 'package:kurage/cache/reader_page_cache.dart';

@@ -1,7 +1,7 @@
 // The purpose of this file is to have a screen where the users
 // can see all their comics and manage them
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:kurage/models/login.dart';
 import 'package:isar_community/isar.dart';

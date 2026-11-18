@@ -1,6 +1,6 @@
 // The purpose of this file is to define the themes for the app
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shared surface palette for floating headers and snackbars.
 /// System uses the resolved Light/Dark ThemeData; Dark and AMOLED intentionally

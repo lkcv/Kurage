@@ -52,6 +52,7 @@ dependencies:
 
   flutter_cache_manager: ^3.4.5
 
+  material_ui: any
 dev_dependencies:
   # flutter_test:
   #   sdk: flutter

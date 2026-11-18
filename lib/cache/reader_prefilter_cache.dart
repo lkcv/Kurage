@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Retains only the final staged-downsampled images for nearby pages.
 /// Intermediate images are released immediately; nothing is written to disk.

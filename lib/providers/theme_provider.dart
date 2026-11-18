@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/models/app_settings.dart';
 import 'package:kurage/providers/app_settings_store.dart';
 import 'package:kurage/themes/accent_palette.dart';

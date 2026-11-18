@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/cache/reader_prefilter_cache.dart';
 
 /// Blends a staged-downsampled page with the full-resolution original.

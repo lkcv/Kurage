@@ -9,7 +9,7 @@ import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/providers/volume_sort.dart';
 import 'package:kurage/providers/library_filter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
