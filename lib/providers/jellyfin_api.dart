@@ -47,6 +47,43 @@ class JellyfinApi {
     ),
   );
 
+  Future<Response<String>> initiateQuickConnect({
+    required Map<String, String> headers,
+  }) => _dio.post<String>(
+    '/QuickConnect/Initiate',
+    options: Options(
+      headers: headers,
+      responseType: ResponseType.plain,
+      validateStatus: (status) => status != null,
+    ),
+  );
+
+  Future<Response<String>> getQuickConnectState({
+    required String secret,
+    required Map<String, String> headers,
+  }) => _dio.get<String>(
+    '/QuickConnect/Connect',
+    queryParameters: {'Secret': secret},
+    options: Options(
+      headers: headers,
+      responseType: ResponseType.plain,
+      validateStatus: (status) => status != null,
+    ),
+  );
+
+  Future<Response<String>> authenticateWithQuickConnect({
+    required String secret,
+    required Map<String, String> headers,
+  }) => _dio.post<String>(
+    '/Users/AuthenticateWithQuickConnect',
+    data: {'Secret': secret},
+    options: Options(
+      headers: headers,
+      responseType: ResponseType.plain,
+      validateStatus: (status) => status != null,
+    ),
+  );
+
   Future<Response<Map<String, dynamic>>> getUserViews({
     required String userId,
     required bool includeHidden,

@@ -244,14 +244,15 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
   Future<ConnectionStatus> _trySilentRelogin(String server) async {
     try {
       final session = SessionStore.current;
-      if (session.username.isEmpty) {
+      final password = session.password;
+      if (session.username.isEmpty || password == null) {
         return ConnectionStatus.authFailed;
       }
       logger.d('ConnectionManager: silent re-login for ${session.username}');
       final result = await LoginProvider.silentLogin(
         server,
         session.username,
-        session.password,
+        password,
       );
 
       switch (result) {

@@ -8,7 +8,7 @@ class Session {
     this.username = '',
     this.userId = '',
     this.token = '',
-    this.password = '',
+    this.password,
     this.client = 'Kurage',
     this.device = '',
     this.deviceId = '',
@@ -19,7 +19,7 @@ class Session {
   final String username;
   final String userId;
   final String token;
-  final String password;
+  final String? password;
   final String client;
   final String device;
   final String deviceId;
@@ -61,7 +61,7 @@ class SessionStore {
       username: login.username,
       userId: login.userId,
       token: sameServer ? (await _storage.read(key: 'accessToken') ?? '') : '',
-      password: sameServer ? (await _storage.read(key: 'password') ?? '') : '',
+      password: sameServer ? await _storage.read(key: 'password') : null,
       client: login.client,
       device: login.device,
       deviceId: login.deviceId,
@@ -74,7 +74,7 @@ class SessionStore {
     required String username,
     required String userId,
     required String token,
-    required String password,
+    required String? password,
     required String client,
     required String device,
     required String deviceId,
@@ -83,7 +83,11 @@ class SessionStore {
     await _storage.write(key: 'server', value: server);
     await _storage.write(key: 'username', value: username);
     await _storage.write(key: 'accessToken', value: token);
-    await _storage.write(key: 'password', value: password);
+    if (password == null) {
+      await _storage.delete(key: 'password');
+    } else {
+      await _storage.write(key: 'password', value: password);
+    }
 
     final isar = Isar.getInstance()!;
     await isar.writeTxn(() async {

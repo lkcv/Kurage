@@ -13,6 +13,82 @@ import 'package:kurage/variables.dart';
 
 enum LoginResult { success, rejected, unreachable }
 
+class QuickConnectException implements Exception {
+  const QuickConnectException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
+}
+
+class QuickConnectSession {
+  const QuickConnectSession._({
+    required this.server,
+    required this.code,
+    required this.secret,
+    required this.headers,
+    required this.device,
+    required this.deviceId,
+    required this.version,
+  });
+
+  final String server;
+  final String code;
+  final String secret;
+  final Map<String, String> headers;
+  final String device;
+  final String deviceId;
+  final String version;
+
+  Future<bool> isAuthorized() async {
+    final response = await JellyfinApi(
+      server,
+    ).getQuickConnectState(secret: secret, headers: headers);
+    if (response.statusCode == 404 || response.statusCode == 400) {
+      throw const QuickConnectException(
+        'Quick Connect code expired. Try again.',
+      );
+    }
+    if (response.statusCode != 200) {
+      throw const QuickConnectException(
+        'Could not check Quick Connect status.',
+      );
+    }
+    final data = LoginProvider._jsonData(response.data);
+    if (data?['Authenticated'] is! bool) {
+      throw const QuickConnectException('Unexpected Quick Connect response.');
+    }
+    return data!['Authenticated'] == true;
+  }
+
+  Future<void> authenticate() async {
+    final response = await JellyfinApi(
+      server,
+    ).authenticateWithQuickConnect(secret: secret, headers: headers);
+    if (response.statusCode != 200) {
+      throw const QuickConnectException(
+        'Quick Connect could not sign in. Try again.',
+      );
+    }
+    final data = LoginProvider._authData(response.data);
+    if (data == null) {
+      throw const QuickConnectException('Unexpected Quick Connect response.');
+    }
+    final user = data['User'] as Map<String, dynamic>;
+    await LoginProvider._saveSession(
+      url: server,
+      username: user['Name'] as String? ?? '',
+      password: null,
+      client: 'Kurage',
+      device: device,
+      deviceId: deviceId,
+      version: version,
+      data: data,
+    );
+  }
+}
+
 class LoginProvider {
   final String url;
   final String username;
@@ -27,7 +103,7 @@ class LoginProvider {
   static Future<void> _saveSession({
     required String url,
     required String username,
-    required String password,
+    required String? password,
     required String client,
     required String device,
     required String deviceId,
@@ -48,26 +124,47 @@ class LoginProvider {
     );
   }
 
-  // Authentication errors may be plain text, even when the request asks for
-  // JSON. Only decode a successful response, and verify the fields we need.
-  static Map<String, dynamic>? _authData(String? body) {
+  static Map<String, dynamic>? _jsonData(String? body) {
     if (body == null) return null;
     try {
       final decoded = jsonDecode(body);
-      if (decoded is! Map<String, dynamic>) return null;
-      final user = decoded['User'];
-      final token = decoded['AccessToken'];
-      if (token is! String ||
-          token.isEmpty ||
-          user is! Map<String, dynamic> ||
-          user['Id'] is! String ||
-          (user['Id'] as String).isEmpty) {
-        return null;
-      }
-      return decoded;
+      return decoded is Map<String, dynamic> ? decoded : null;
     } on FormatException {
       return null;
     }
+  }
+
+  // Authentication errors may be plain text, even when the request asks for
+  // JSON. Only decode a successful response, and verify the fields we need.
+  static Map<String, dynamic>? _authData(String? body) {
+    final decoded = _jsonData(body);
+    if (decoded == null) return null;
+    final user = decoded['User'];
+    final token = decoded['AccessToken'];
+    if (token is! String ||
+        token.isEmpty ||
+        user is! Map<String, dynamic> ||
+        user['Id'] is! String ||
+        (user['Id'] as String).isEmpty) {
+      return null;
+    }
+    return decoded;
+  }
+
+  static const _invalidAddressMessage =
+      'Enter a valid server address starting with http:// or https://.';
+
+  // Trim the address and drop trailing slashes. Null if it isn't an http(s) URL.
+  static String? _normalizeServerUrl(String url) {
+    final server = url.trim().replaceFirst(RegExp(r'/+$'), '');
+    final address = Uri.tryParse(server);
+    if (address == null ||
+        (address.scheme != 'http' && address.scheme != 'https') ||
+        !address.hasAuthority ||
+        address.host.isEmpty) {
+      return null;
+    }
+    return server;
   }
 
   static String _httpLoginError(int? status) {
@@ -117,6 +214,76 @@ class LoginProvider {
     }
   }
 
+  static Future<({String device, String deviceId, String version})>
+  _deviceInfo() async {
+    String device = 'Unknown Device';
+    String deviceId = 'Unknown Device id';
+    final deviceInfo = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final androidInfo = await deviceInfo.androidInfo;
+      device = androidInfo.model;
+      deviceId = 'Android ${androidInfo.version.release}';
+    } else if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      device = iosInfo.name;
+      deviceId = iosInfo.identifierForVendor ?? 'Unknown Device id';
+    }
+    final version = (await package_info.PackageInfo.fromPlatform()).version;
+    return (device: device, deviceId: deviceId, version: version);
+  }
+
+  static String quickConnectError(Object error) {
+    if (error is QuickConnectException) return error.message;
+    if (error is DioException) return _dioLoginError(error);
+    logger.w('Quick Connect failed: ${error.runtimeType}');
+    return 'Could not complete Quick Connect. Please try again.';
+  }
+
+  static Future<QuickConnectSession> initiateQuickConnect(String url) async {
+    final server = _normalizeServerUrl(url);
+    if (server == null) {
+      throw const QuickConnectException(_invalidAddressMessage);
+    }
+
+    final info = await _deviceInfo();
+    final headers = getHeaders(
+      server,
+      'Kurage',
+      info.device,
+      info.deviceId,
+      info.version,
+    );
+    final response = await JellyfinApi(
+      server,
+    ).initiateQuickConnect(headers: headers);
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      throw const QuickConnectException(
+        'Quick Connect is disabled on this server.',
+      );
+    }
+    if (response.statusCode != 200) {
+      throw const QuickConnectException('Could not start Quick Connect.');
+    }
+    final data = _jsonData(response.data);
+    final code = data?['Code'];
+    final secret = data?['Secret'];
+    if (code is! String ||
+        code.isEmpty ||
+        secret is! String ||
+        secret.isEmpty) {
+      throw const QuickConnectException('Unexpected Quick Connect response.');
+    }
+    return QuickConnectSession._(
+      server: server,
+      code: code,
+      secret: secret,
+      headers: headers,
+      device: info.device,
+      deviceId: info.deviceId,
+      version: info.version,
+    );
+  }
+
   // Login without a UI/BuildContext. Used by ConnectionManager to refresh an
   // expired token with the saved credentials.
   static Future<LoginResult> silentLogin(
@@ -129,25 +296,18 @@ class LoginProvider {
           ? url.substring(0, url.length - 1)
           : url;
       const client = "Kurage";
-      String device = "Unknown Device";
-      String deviceId = "Unknown Device id";
-
-      final deviceInfo = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        device = androidInfo.model;
-        deviceId = "Android ${androidInfo.version.release}";
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        device = iosInfo.name;
-        deviceId = iosInfo.identifierForVendor ?? "Unknown Device id";
-      }
-      final version = (await package_info.PackageInfo.fromPlatform()).version;
+      final info = await _deviceInfo();
 
       final response = await JellyfinApi(requestUrl).authenticateUserByName(
         username: username,
         password: password,
-        headers: getHeaders(requestUrl, client, device, deviceId, version),
+        headers: getHeaders(
+          requestUrl,
+          client,
+          info.device,
+          info.deviceId,
+          info.version,
+        ),
       );
 
       if (response.statusCode == 200) {
@@ -158,9 +318,9 @@ class LoginProvider {
           username: username,
           password: password,
           client: client,
-          device: device,
-          deviceId: deviceId,
-          version: version,
+          device: info.device,
+          deviceId: info.deviceId,
+          version: info.version,
           data: data,
         );
         return LoginResult.success;
@@ -193,36 +353,23 @@ class LoginProvider {
     String username,
     String password,
   ) async {
-    final requestUrl = url.trim().replaceFirst(RegExp(r'/+$'), '');
-    final address = Uri.tryParse(requestUrl);
-    if (address == null ||
-        (address.scheme != 'http' && address.scheme != 'https') ||
-        !address.hasAuthority ||
-        address.host.isEmpty) {
-      return "Enter a valid server address starting with http:// or https://.";
-    }
+    final requestUrl = _normalizeServerUrl(url);
+    if (requestUrl == null) return _invalidAddressMessage;
     if (username.trim().isEmpty) return 'Enter your username.';
 
     const client = "Kurage";
     try {
-      String device = "Unknown Device";
-      String deviceId = "Unknown Device id";
-      final deviceInfo = DeviceInfoPlugin();
-      if (Platform.isAndroid) {
-        final androidInfo = await deviceInfo.androidInfo;
-        device = androidInfo.model;
-        deviceId = "Android ${androidInfo.version.release}";
-      } else if (Platform.isIOS) {
-        final iosInfo = await deviceInfo.iosInfo;
-        device = iosInfo.name;
-        deviceId = iosInfo.identifierForVendor ?? "Unknown Device id";
-      }
-
-      final version = (await package_info.PackageInfo.fromPlatform()).version;
+      final info = await _deviceInfo();
       final response = await JellyfinApi(requestUrl).authenticateUserByName(
         username: username.trim(),
         password: password,
-        headers: getHeaders(requestUrl, client, device, deviceId, version),
+        headers: getHeaders(
+          requestUrl,
+          client,
+          info.device,
+          info.deviceId,
+          info.version,
+        ),
       );
       if (response.statusCode != 200) {
         logger.w('Login rejected (HTTP ${response.statusCode})');
@@ -239,9 +386,9 @@ class LoginProvider {
         username: username.trim(),
         password: password,
         client: client,
-        device: device,
-        deviceId: deviceId,
-        version: version,
+        device: info.device,
+        deviceId: info.deviceId,
+        version: info.version,
         data: data,
       );
       return "true";
