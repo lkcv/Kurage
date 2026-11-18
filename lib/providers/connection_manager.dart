@@ -270,6 +270,13 @@ class ConnectionManager extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
+  /// Discard the previous session's status and any outstanding validation.
+  Future<void> validateNewSession() {
+    ++_failureRevision;
+    _setStatus(ConnectionStatus.validating);
+    return validateStartup();
+  }
+
   /// Manual retry (triggered by user action)
   Future<void> retry() async {
     logger.d('ConnectionManager: manual retry triggered');

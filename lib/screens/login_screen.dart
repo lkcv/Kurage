@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       if (!mounted) return;
       if (result == 'true') {
-        unawaited(context.read<ConnectionManager>().retry());
+        unawaited(context.read<ConnectionManager>().validateNewSession());
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const HomeScreen()),
