@@ -1497,7 +1497,9 @@ class _CbzReaderState extends State<CbzReader>
         (title == null
             ? (next ? 'End of series' : 'Beginning of series')
             : 'Release to open $title');
-    final coverPath = next ? widget.nextVolumeCover : widget.previousVolumeCover;
+    final coverPath = next
+        ? widget.nextVolumeCover
+        : widget.previousVolumeCover;
     final cover = _volumeSwipeMessage == null && title != null
         ? coverImageProvider(coverPath ?? '')
         : null;
@@ -1520,11 +1522,10 @@ class _CbzReaderState extends State<CbzReader>
                       image: cover,
                       fit: BoxFit.contain,
                       gaplessPlayback: true,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Image.asset(
-                            'assets/images/NoCoverArt.png',
-                            fit: BoxFit.cover,
-                          ),
+                      errorBuilder: (context, error, stackTrace) => Image.asset(
+                        'assets/images/NoCoverArt.png',
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),

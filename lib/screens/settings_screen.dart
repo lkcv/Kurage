@@ -153,9 +153,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     data: Theme.of(context).copyWith(
                       appBarTheme: Theme.of(context).appBarTheme.copyWith(
                         toolbarHeight: FloatingSurfaceHeader.toolbarHeight,
-                        backgroundColor: FloatingSurfacePalette.topBarBackground(
-                          headerBrightness,
-                        ),
+                        backgroundColor:
+                            FloatingSurfacePalette.topBarBackground(
+                              headerBrightness,
+                            ),
                         foregroundColor: headerForeground,
                         centerTitle: true,
                         elevation: 0,
