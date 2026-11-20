@@ -1912,6 +1912,7 @@ class _CbzReaderState extends State<CbzReader>
                 ),
                 child: Slider(
                   value: _currentPage.toDouble(),
+                  autofocus: Platform.isLinux,
                   min: 0,
                   max: lastPage.toDouble(),
                   divisions: Platform.isLinux && pageNums > 1 ? pageNums - 1 : null,
