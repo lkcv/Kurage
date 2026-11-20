@@ -1905,6 +1905,12 @@ class _CbzReaderState extends State<CbzReader>
               child: SliderTheme(
                 data: SliderTheme.of(context).copyWith(
                   trackHeight: 6,
+                  tickMarkShape: Platform.isLinux
+                      ? SliderTickMarkShape.noTickMark
+                      : null,
+                  overlayShape: Platform.isLinux
+                      ? SliderComponentShape.noOverlay
+                      : null,
                   activeTrackColor: scheme.primary,
                   inactiveTrackColor: scheme.primary.withValues(alpha: 0.25),
                   thumbColor: scheme.primary,
