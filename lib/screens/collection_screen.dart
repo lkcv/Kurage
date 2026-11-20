@@ -14,6 +14,7 @@ import 'package:kurage/models/folder.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
 import 'package:kurage/widgets/cover_grid_layout.dart';
+import 'package:kurage/widgets/grid_scroll_controller.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/collection_cover_prewarmer.dart';
@@ -64,7 +65,7 @@ class _CollectionScreenState extends State<CollectionScreen>
   final ValueNotifier<CoverOpeningRoute?> _activeCoverRoute = ValueNotifier(
     null,
   );
-  final ScrollController _gridController = ScrollController();
+  final ScrollController _gridController = createGridScrollController();
   // Only mounted cards are tracked; the sliver still disposes offscreen cards.
   final Map<String, KuroStyleBookCardState> _mountedCards = {};
   // Reuse one database query across animation and layout rebuilds. Creating a

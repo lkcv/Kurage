@@ -19,6 +19,7 @@ import 'package:kurage/models/entry.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
 import 'package:kurage/widgets/cover_grid_layout.dart';
+import 'package:kurage/widgets/grid_scroll_controller.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/library_cover_prewarmer.dart';
@@ -79,11 +80,11 @@ class _LibraryScreenState extends State<LibraryScreen>
   bool _errorModalShowing = false;
   List<Folder>? _lastFolders;
   // Each filter combination retains its own scroll position.
-  final ScrollController _allScrollController = ScrollController();
-  final ScrollController _downloadedScrollController = ScrollController();
-  final ScrollController _readingScrollController = ScrollController();
+  final ScrollController _allScrollController = createGridScrollController();
+  final ScrollController _downloadedScrollController = createGridScrollController();
+  final ScrollController _readingScrollController = createGridScrollController();
   final ScrollController _downloadedReadingScrollController =
-      ScrollController();
+      createGridScrollController();
   ScrollController get _libraryScrollController {
     if (_filter.downloadedOnly && _filter.readingOnly) {
       return _downloadedReadingScrollController;
