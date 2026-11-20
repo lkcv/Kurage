@@ -1,5 +1,6 @@
 // The purpose of this file is to allow the user to change the settings of the app
 
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
@@ -99,9 +100,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  String version = '';
+  String version = const String.fromEnvironment('KURAGE_VERSION');
 
   Future<void> getPackageInfo() async {
+    if (Platform.isLinux) return;
     p_info.PackageInfo packageInfo = await p_info.PackageInfo.fromPlatform();
     version = packageInfo.version;
   }

@@ -139,7 +139,7 @@ else
 fi
 
 if [[ "${SKIP_FLUTTER_BUILD:-0}" != 1 ]]; then
-  flutter build linux --release
+  flutter build linux --release --dart-define="KURAGE_VERSION=$VERSION"
 fi
 FLUTTER_BUNDLE="$ROOT/build/linux/x64/release/bundle"
 [[ -f "$FLUTTER_BUNDLE/lib/libapp.so" && -d "$FLUTTER_BUNDLE/data" ]] || {
