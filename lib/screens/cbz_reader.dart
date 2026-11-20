@@ -1778,9 +1778,12 @@ class _CbzReaderState extends State<CbzReader>
     }
     _mouseOverlayTimer?.cancel();
     if (!_showOverlay) setState(() => _showOverlay = true);
-    _mouseOverlayTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && _showOverlay) setState(() => _showOverlay = false);
-    });
+    _mouseOverlayTimer = Timer(const Duration(seconds: 1), _hideMouseOverlay);
+  }
+
+  void _hideMouseOverlay() {
+    _mouseOverlayTimer?.cancel();
+    if (mounted && _showOverlay) setState(() => _showOverlay = false);
   }
 
   void _exit() {
@@ -1991,6 +1994,11 @@ class _CbzReaderState extends State<CbzReader>
         backgroundColor: Colors.black,
         body: MouseRegion(
           onHover: _onMouseHover,
+          onExit: (event) {
+            if (Platform.isLinux && event.kind == PointerDeviceKind.mouse) {
+              _hideMouseOverlay();
+            }
+          },
           child: Stack(
           children: [
             Positioned.fill(
