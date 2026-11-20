@@ -11,6 +11,8 @@ import 'package:kurage/models/folder.dart';
 import 'package:kurage/models/login.dart';
 import 'package:kurage/providers/app_settings_store.dart';
 import 'package:kurage/providers/session_store.dart';
+import 'package:kurage/providers/pass_secure_storage.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'package:kurage/screens/home_screen.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/download_queue.dart';
@@ -36,6 +38,9 @@ Future<String> get _localPath async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  if (Platform.isLinux) {
+    FlutterSecureStoragePlatform.instance = PassSecureStorage();
+  }
 
   // Keep system bars hidden; edge swipes reveal them temporarily.
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
