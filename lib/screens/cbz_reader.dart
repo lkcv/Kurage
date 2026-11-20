@@ -144,6 +144,7 @@ class _CbzReaderState extends State<CbzReader>
   bool _volumeSwipePending = false;
   String? _volumeSwipeMessage;
   Timer? _volumeSwipeMessageTimer;
+  Timer? _mouseOverlayTimer;
   Offset? _volumeSwipeOrigin;
   double _volumeSwipeReversal = 0;
   // A zoomed page owns the first drag. Only a fresh swipe that STARTS at an
@@ -218,6 +219,7 @@ class _CbzReaderState extends State<CbzReader>
     WidgetsBinding.instance.removeObserver(this);
     DownloadQueue.instance.removeListener(_onDownloadQueueChanged);
     _volumeSwipeMessageTimer?.cancel();
+    _mouseOverlayTimer?.cancel();
     _pageController?.dispose();
     _verticalScrollController.dispose();
     _prefilter.dispose();
@@ -1768,6 +1770,19 @@ class _CbzReaderState extends State<CbzReader>
     setState(() => _showOverlay = !_showOverlay);
   }
 
+  void _onMouseHover(PointerHoverEvent event) {
+    if (!Platform.isLinux ||
+        event.kind != PointerDeviceKind.mouse ||
+        _exiting) {
+      return;
+    }
+    _mouseOverlayTimer?.cancel();
+    if (!_showOverlay) setState(() => _showOverlay = true);
+    _mouseOverlayTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted && _showOverlay) setState(() => _showOverlay = false);
+    });
+  }
+
   void _exit() {
     if (_exiting) return;
     _exiting = true;
@@ -1973,7 +1988,9 @@ class _CbzReaderState extends State<CbzReader>
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Stack(
+        body: MouseRegion(
+          onHover: _onMouseHover,
+          child: Stack(
           children: [
             Positioned.fill(
               child: Listener(
@@ -2001,6 +2018,7 @@ class _CbzReaderState extends State<CbzReader>
             if (_volumeSwipeDelta != 0 || _volumeSwipeMessage != null)
               Positioned.fill(child: _volumeSwipePill()),
           ],
+          ),
         ),
       ),
     );
