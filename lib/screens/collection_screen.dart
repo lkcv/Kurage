@@ -13,6 +13,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:kurage/models/folder.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
+import 'package:kurage/widgets/cover_grid_layout.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/collection_cover_prewarmer.dart';
@@ -123,6 +124,11 @@ class _CollectionScreenState extends State<CollectionScreen>
     }
   }
 
+  @override
+  void didChangeMetrics() {
+    if (mounted && Platform.isLinux) _scheduleCoverWarming();
+  }
+
   void _onPrefetchConnectionChanged() {
     if (_prefetchConnection?.status == ConnectionStatus.online) {
       _scheduleSpeculative();
@@ -205,11 +211,10 @@ class _CollectionScreenState extends State<CollectionScreen>
     // reverse animation begins. This doesn't enable cover prewarming while
     // the reader is open, and doesn't animate the grid itself.
     final position = _gridController.position;
-    final width = math.max(1.0, MediaQuery.sizeOf(context).width - 8);
-    final tileWidth = (width - 12) / 3;
-    final tileHeight = tileWidth / 0.69;
+    final layout = CoverGridLayout.collection(context);
+    final tileHeight = layout.tileHeight;
     final top = MediaQuery.paddingOf(context).top + 6;
-    final rowTop = top + (index ~/ 3) * (tileHeight + 6);
+    final rowTop = top + (index ~/ layout.columns) * layout.rowHeight;
     final offset = position.pixels;
     final isVisible =
         rowTop >= offset &&
@@ -418,14 +423,17 @@ class _CollectionScreenState extends State<CollectionScreen>
   // The initial viewport is not mounted yet, so estimate its full height.
   ({int first, int end}) _visibleCoverRange(int count) {
     if (count == 0) return (first: 0, end: 0);
-    final width = math.max(1.0, MediaQuery.sizeOf(context).width - 20);
-    final rowHeight = (width / 3) / 0.69 + 6;
+    final layout = CoverGridLayout.collection(context);
+    final rowHeight = layout.rowHeight;
     if (!_gridController.hasClients) {
       final viewportHeight =
           MediaQuery.sizeOf(context).height -
           MediaQuery.paddingOf(context).bottom;
       final rows = math.max(1, (viewportHeight / rowHeight).ceil() + 1);
-      return (first: 0, end: math.min(count, math.max(12, rows * 3)));
+      return (
+        first: 0,
+        end: math.min(count, math.max(12, rows * layout.columns)),
+      );
     }
     final firstRow = math.max(0, (_gridController.offset / rowHeight).floor());
     final rows = math.max(
@@ -433,8 +441,8 @@ class _CollectionScreenState extends State<CollectionScreen>
       (_gridController.position.viewportDimension / rowHeight).ceil() + 1,
     );
     return (
-      first: math.min(count, firstRow * 3),
-      end: math.min(count, (firstRow + rows) * 3),
+      first: math.min(count, firstRow * layout.columns),
+      end: math.min(count, (firstRow + rows) * layout.columns),
     );
   }
 
@@ -582,13 +590,9 @@ class _CollectionScreenState extends State<CollectionScreen>
                           padding: EdgeInsets.only(
                             top: MediaQuery.of(context).padding.top + 6.0,
                           ),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                childAspectRatio: 0.69,
-                                crossAxisSpacing: 6,
-                                mainAxisSpacing: 6,
-                              ),
+                          gridDelegate: CoverGridLayout.collection(
+                            context,
+                          ).delegate,
                           itemCount: snapshot.data.length,
                           itemBuilder: (BuildContext context, int index) {
                             Entry entry = snapshot.data[index];

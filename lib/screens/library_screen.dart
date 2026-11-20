@@ -1,5 +1,6 @@
 // The purpose of this file is to create the library screen (this is part of the list of screens in the bottom navigation bar)
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
@@ -17,6 +18,7 @@ import 'package:isar_community/isar.dart';
 import 'package:kurage/models/entry.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
+import 'package:kurage/widgets/cover_grid_layout.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/library_cover_prewarmer.dart';
@@ -425,27 +427,26 @@ class _LibraryScreenState extends State<LibraryScreen>
 
   void _scheduleCoverWarming() => _coverPrewarmer.schedule();
 
-  // Two-column grid: 8px outer padding, 6px gutters, 0.63 aspect ratio.
   // Prepare the onscreen rows and one adjacent row, not the entire library.
   ({int first, int end}) _visibleCoverRange(int count) {
     if (count == 0) return (first: 0, end: 0);
+    final layout = CoverGridLayout.library(context);
+    final rowHeight = layout.rowHeight;
     if (!_libraryScrollController.hasClients) {
       // During cold startup the grid is deliberately not mounted yet.
       // Estimate the visible rows to decode them before the first grid frame.
-      final width = math.max(1.0, MediaQuery.sizeOf(context).width - 16);
-      final rowHeight = ((width - 6) / 2) / 0.63 + 6;
       final gridTop = _headerHeight(context) + _gridTopGap;
       final rows = math.max(
         1,
         ((MediaQuery.sizeOf(context).height - gridTop) / rowHeight).ceil() + 1,
       );
-      return (first: 0, end: math.min(count, math.max(10, rows * 2)));
+      return (
+        first: 0,
+        end: math.min(count, math.max(10, rows * layout.columns)),
+      );
     }
     final viewport = _libraryScrollController.position.viewportDimension;
     final offset = _libraryScrollController.offset;
-    final width = math.max(1.0, MediaQuery.sizeOf(context).width - 16);
-    final tileWidth = (width - 6) / 2;
-    final rowHeight = tileWidth / 0.63 + 6;
     final gridTop = _headerHeight(context) + _gridTopGap;
     final firstRow = math.max(0, ((offset - gridTop) / rowHeight).floor() - 1);
     final lastRow = math.max(
@@ -453,8 +454,8 @@ class _LibraryScreenState extends State<LibraryScreen>
       ((offset + viewport - gridTop) / rowHeight).ceil() + 1,
     );
     return (
-      first: math.min(count, firstRow * 2),
-      end: math.min(count, lastRow * 2),
+      first: math.min(count, firstRow * layout.columns),
+      end: math.min(count, lastRow * layout.columns),
     );
   }
 
@@ -483,6 +484,13 @@ class _LibraryScreenState extends State<LibraryScreen>
       _wasOffline = manager.status == ConnectionStatus.offline;
       manager.addListener(_onConnectionChanged);
     }
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted || !Platform.isLinux) return;
+    _coverPrewarmer.invalidateWindow();
+    _scheduleCoverWarming();
   }
 
   String _friendlyError(Object? error) => switch (classifyError(error)) {
@@ -731,12 +739,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.63,
-                crossAxisSpacing: 6,
-                mainAxisSpacing: 6,
-              ),
+              gridDelegate: CoverGridLayout.library(context).delegate,
               delegate: SliverChildBuilderDelegate((context, index) {
                 final folder = folders[index];
                 return ValueListenableBuilder<int>(
@@ -1299,7 +1302,7 @@ class _SeriesCardState extends State<SeriesCard> {
 ImageProvider? _libraryCoverProvider(String path, BuildContext context) {
   if (path.isEmpty || path.toLowerCase() == 'asset') return null;
   // Decode near displayed size rather than keeping huge source bitmaps in RAM.
-  final tileWidth = (MediaQuery.sizeOf(context).width - 22) / 2;
+  final tileWidth = CoverGridLayout.library(context).tileWidth;
   final pixelWidth = math.max(
     1,
     (tileWidth * MediaQuery.devicePixelRatioOf(context)).ceil(),
