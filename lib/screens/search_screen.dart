@@ -385,7 +385,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     linuxGrid == null ? 10 : 4,
                     MediaQuery.of(context).padding.top + 48 + 8,
                     linuxGrid == null ? 10 : 4,
-                    8,
+                    80,
                   ),
                   gridDelegate: linuxGrid == null
                       ? const SliverGridDelegateWithFixedCrossAxisCount(
