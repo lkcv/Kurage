@@ -1911,6 +1911,7 @@ class _CbzReaderState extends State<CbzReader>
                   value: _currentPage.toDouble(),
                   min: 0,
                   max: lastPage.toDouble(),
+                  divisions: Platform.isLinux && pageNums > 1 ? pageNums - 1 : null,
                   onChanged: (v) => setState(() => _currentPage = v.round()),
                   onChangeEnd: (v) => _pageController?.jumpToPage(v.round()),
                 ),
