@@ -28,8 +28,8 @@ Kurage is a manga and comic reader for [Jellyfin](https://jellyfin.org/), built 
 </p>
 
 ## Platform Support
-I've only tested Android so far, but iOS should work too.
-Windows, macOS, and Linux are untested.
+Android, Linux, and iOS are officially supported.
+Windows and macOS are untested.
 
 ## Credits
 
