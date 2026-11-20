@@ -41,6 +41,7 @@ Future<String> get _localPath async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
   if (Platform.isLinux) {
     FlutterSecureStoragePlatform.instance = PassSecureStorage();
   }

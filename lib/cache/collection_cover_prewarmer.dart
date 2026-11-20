@@ -13,7 +13,8 @@ class CollectionCoverPrewarmer {
     required this.imageConfiguration,
     required this.onInitialReady,
     required this.onWarmComplete,
-  });
+    bool holdInitialViewport = true,
+  }) : _initialReady = !holdInitialViewport;
 
   final bool Function() isActive;
   final bool Function() isCurrentRoute;
@@ -24,7 +25,7 @@ class CollectionCoverPrewarmer {
 
   static const int _maxPinnedCovers = 42;
   List<String>? _covers;
-  bool _initialReady = false;
+  bool _initialReady;
   bool _scheduled = false;
   bool _warming = false;
   bool _warmAgain = false;
@@ -47,7 +48,13 @@ class CollectionCoverPrewarmer {
   bool get isPaused => _paused;
 
   void setCovers(List<String> covers) {
+    _generation++;
     _covers = covers;
+    if (covers.isEmpty) {
+      for (final path in _pinnedCovers.keys.toList()) {
+        _releaseCoverPin(path);
+      }
+    }
     schedule();
   }
 

@@ -299,7 +299,6 @@ class _CbzReaderState extends State<CbzReader>
 
   Future<void> _load() async {
     try {
-      PaintingBinding.instance.imageCache.maximumSizeBytes = 300 << 20;
       direction = AppSettingsStore.current.readingDirection.toLowerCase();
       if (!mounted) return;
 

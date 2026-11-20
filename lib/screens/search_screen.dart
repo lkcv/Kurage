@@ -10,6 +10,7 @@ import 'package:kurage/models/entry.dart';
 import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/screens/cbz_reader.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
+import 'package:kurage/cache/collection_cover_prewarmer.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
 import 'package:kurage/widgets/volume_actions.dart';
@@ -70,7 +71,8 @@ class SearchScreen extends StatefulWidget {
 }
 
 // _SearchScreenState
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with WidgetsBindingObserver {
   static const double _headerCornerRadius = 17.5;
 
   final _searchController = TextEditingController();
@@ -79,6 +81,18 @@ class _SearchScreenState extends State<SearchScreen> {
   // This notifier rebuilds only the search field, not the results grid.
   final _enterVisibleQuery = ValueNotifier<String?>(null);
   final _resultsScrollController = createGridScrollController();
+  bool _inForeground = true;
+  late final CollectionCoverPrewarmer _coverPrewarmer =
+      CollectionCoverPrewarmer(
+        isActive: () => mounted && _inForeground,
+        isCurrentRoute: () => ModalRoute.of(context)?.isCurrent ?? true,
+        visibleRange: _visibleCoverRange,
+        imageConfiguration: () => createLocalImageConfiguration(context),
+        // Search paints immediately; only upcoming covers need prewarming.
+        holdInitialViewport: false,
+        onInitialReady: () {},
+        onWarmComplete: () {},
+      );
   final isar = Isar.getInstance();
   List<Entry> _catalog = [];
   bool _catalogReady = false;
@@ -87,7 +101,47 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _resultsScrollController.addListener(_onResultsScrolled);
     _refreshCatalog();
+  }
+
+  void _onResultsScrolled() {
+    if (!_resultsScrollController.hasClients) return;
+    if (_coverPrewarmer.recordScroll(_resultsScrollController.offset)) {
+      _coverPrewarmer.schedule();
+    }
+  }
+
+  ({int first, int end}) _visibleCoverRange(int count) {
+    if (count == 0) return (first: 0, end: 0);
+    final grid = CoverGridLayout.collection(context);
+    final rowHeight = grid.tileHeight + 20 + CoverGridLayout.spacing;
+    final top = MediaQuery.paddingOf(context).top + 48 + 8;
+    final scroll = _resultsScrollController;
+    final offset = scroll.hasClients ? scroll.offset : 0.0;
+    final viewportHeight = scroll.hasClients
+        ? scroll.position.viewportDimension
+        : MediaQuery.sizeOf(context).height - 80;
+    final firstRow = max(0, ((offset - top) / rowHeight).floor());
+    final lastRow = max(
+      firstRow + 1,
+      ((offset + viewportHeight - top) / rowHeight).ceil() + 1,
+    );
+    return (
+      first: min(count, firstRow * grid.columns),
+      end: min(count, lastRow * grid.columns),
+    );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _inForeground = true;
+      _coverPrewarmer.revalidate();
+    } else {
+      _inForeground = false;
+    }
   }
 
   Future<void> _refreshCatalog() async {
@@ -106,6 +160,9 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _coverPrewarmer.dispose();
+    _resultsScrollController.removeListener(_onResultsScrolled);
     _enterVisibleQuery.dispose();
     _searchFocusNode.dispose();
     _searchController.dispose();
@@ -153,10 +210,14 @@ class _SearchScreenState extends State<SearchScreen> {
           skipReturnFade: skipReturnFade,
         ),
       );
-      await Navigator.of(context).push<void>(route);
-      // push() completes when pop starts, not after the cover shrinks.
-      // Avoid rebuilding the underlying search list during that animation.
-      await route.completed;
+      _coverPrewarmer.pause();
+      try {
+        await Navigator.of(context).push<void>(route);
+        // Don't compete with the cover's return animation.
+        await route.completed;
+      } finally {
+        if (mounted) _coverPrewarmer.resume();
+      }
     } else {
       await _openVolumeActions(entry);
       return;
@@ -432,6 +493,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void getSearchResults(String searchQuery) {
     final query = searchQuery.trim().toLowerCase();
     if (query.isEmpty || !_catalogReady) {
+      _coverPrewarmer.setCovers(const []);
       setState(() => searchResults = []);
       return;
     }
@@ -440,6 +502,7 @@ class _SearchScreenState extends State<SearchScreen> {
         .where((entry) => entry.title.toLowerCase().contains(query))
         .toList();
     matches.sort((a, b) => _naturalTitleCompare(a.title, b.title));
+    _coverPrewarmer.setCovers([for (final entry in matches) entry.imagePath]);
     setState(() => searchResults = matches);
   }
 
