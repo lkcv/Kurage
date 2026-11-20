@@ -1,6 +1,5 @@
 // The purpose of this screen is to allow the user to search for a specific book/comic
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -246,9 +245,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final headerForeground = FloatingSurfacePalette.foreground(
       headerBrightness,
     );
-    final linuxGrid = Platform.isLinux
-        ? CoverGridLayout.collection(context)
-        : null;
+    final grid = CoverGridLayout.collection(context);
     // Intercept Android system/gesture back. iOS edge-swipe only works for
     // pushed routes; Search is a tab, so the leading control covers that case.
     final screen = PopScope(
@@ -383,26 +380,19 @@ class _SearchScreenState extends State<SearchScreen> {
               : GridView.builder(
                   controller: _resultsScrollController,
                   padding: EdgeInsets.fromLTRB(
-                    linuxGrid == null ? 10 : 4,
+                    4,
                     MediaQuery.of(context).padding.top + 48 + 8,
-                    linuxGrid == null ? 10 : 4,
+                    4,
                     80,
                   ),
-                  gridDelegate: linuxGrid == null
-                      ? const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: 0.62,
-                        )
-                      : SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: linuxGrid.columns,
-                          crossAxisSpacing: CoverGridLayout.spacing,
-                          mainAxisSpacing: CoverGridLayout.spacing,
-                          // Reserve room for the title below the cover.
-                          childAspectRatio: linuxGrid.tileWidth /
-                              (linuxGrid.tileHeight + 20),
-                        ),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: grid.columns,
+                    crossAxisSpacing: CoverGridLayout.spacing,
+                    mainAxisSpacing: CoverGridLayout.spacing,
+                    // Reserve room for the title below the cover.
+                    childAspectRatio: grid.tileWidth /
+                        (grid.tileHeight + 20),
+                  ),
                   itemCount: searchResults.length,
                   itemBuilder: (context, i) {
                     final entry = searchResults[i];
