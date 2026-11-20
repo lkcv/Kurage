@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/screens/collection_screen.dart' show KuroStyleBookCard;
 import 'package:kurage/widgets/cover_grid_layout.dart';
+import 'package:kurage/widgets/grid_scroll_controller.dart';
 
 // Match the Library's two 17.5px concave header corners while leaving the
 // middle transparent for content scrolling behind the header.
@@ -78,7 +79,7 @@ class _SearchScreenState extends State<SearchScreen> {
   // Show the saved query while Enter temporarily clears EditableText's value.
   // This notifier rebuilds only the search field, not the results grid.
   final _enterVisibleQuery = ValueNotifier<String?>(null);
-  final _resultsScrollController = ScrollController();
+  final _resultsScrollController = createGridScrollController();
   final isar = Isar.getInstance();
   List<Entry> _catalog = [];
   bool _catalogReady = false;
@@ -250,7 +251,7 @@ class _SearchScreenState extends State<SearchScreen> {
         : null;
     // Intercept Android system/gesture back. iOS edge-swipe only works for
     // pushed routes; Search is a tab, so the leading control covers that case.
-    return PopScope(
+    final screen = PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
         // Android consumes Back to hide the IME without changing field focus.
@@ -432,6 +433,10 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       ), // Scaffold
     ); // PopScope
+    return GridKeyboardScroll(
+      controller: _resultsScrollController,
+      child: screen,
+    );
   }
 
   void getSearchResults(String searchQuery) {

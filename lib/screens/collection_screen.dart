@@ -579,7 +579,7 @@ class _CollectionScreenState extends State<CollectionScreen>
                       if (!_coverPrewarmer.initialReady) {
                         return const Center(child: CircularProgressIndicator());
                       }
-                      return Padding(
+                      final grid = Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4.0,
                           vertical: 4.0,
@@ -739,6 +739,11 @@ class _CollectionScreenState extends State<CollectionScreen>
                             );
                           },
                         ),
+                      );
+                      return GridKeyboardScroll(
+                        controller: _gridController,
+                        autofocus: true,
+                        child: grid,
                       );
                     } else if (snapshot.hasData && snapshot.data!.isEmpty) {
                       return Center(

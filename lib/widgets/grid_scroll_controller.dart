@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
@@ -8,6 +9,101 @@ import 'package:flutter/widgets.dart';
 /// Preserve standard scrolling on mobile; smooth stepped mouse wheels on Linux.
 ScrollController createGridScrollController() =>
     Platform.isLinux ? _SmoothWheelScrollController() : ScrollController();
+
+/// Let desktop arrow keys use the same easing as mouse-wheel scrolling.
+class GridKeyboardScroll extends StatefulWidget {
+  const GridKeyboardScroll({
+    super.key,
+    required this.controller,
+    required this.child,
+    this.autofocus = false,
+  });
+
+  final ScrollController controller;
+  final Widget child;
+  final bool autofocus;
+
+  @override
+  State<GridKeyboardScroll> createState() => _GridKeyboardScrollState();
+}
+
+class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
+  Timer? _holdTimer;
+  int? _heldDirection;
+
+  void _scroll(double delta) {
+    if (widget.controller.hasClients) {
+      widget.controller.position.pointerScroll(delta);
+    }
+  }
+
+  void _stop() {
+    _holdTimer?.cancel();
+    _holdTimer = null;
+    _heldDirection = null;
+  }
+
+  @override
+  void didUpdateWidget(GridKeyboardScroll oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) _stop();
+  }
+
+  @override
+  void dispose() {
+    _stop();
+    super.dispose();
+  }
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    final direction = switch (event.logicalKey) {
+      LogicalKeyboardKey.arrowUp => -1,
+      LogicalKeyboardKey.arrowDown => 1,
+      _ => 0,
+    };
+    if (direction == 0) return KeyEventResult.ignored;
+
+    if (event is KeyUpEvent) {
+      if (_heldDirection == direction) _stop();
+      return KeyEventResult.handled;
+    }
+    if (event is KeyRepeatEvent) return KeyEventResult.handled;
+    if (event is! KeyDownEvent ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isMetaPressed ||
+        !widget.controller.hasClients) {
+      return KeyEventResult.ignored;
+    }
+
+    if (_heldDirection != direction) {
+      _stop();
+      _heldDirection = direction;
+      _scroll(direction * 50);
+      // The Wayland embedder doesn't synthesize keyboard repeat events.
+      _holdTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
+        _scroll(direction * 25);
+      });
+    }
+    return KeyEventResult.handled;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Platform.isLinux) return widget.child;
+    return Focus(
+      autofocus: widget.autofocus,
+      canRequestFocus: widget.autofocus,
+      skipTraversal: !widget.autofocus,
+      onKeyEvent: _onKeyEvent,
+      onFocusChange: (focused) {
+        if (!focused) _stop();
+      },
+      child: widget.child,
+    );
+  }
+}
 
 class _SmoothWheelScrollController extends ScrollController {
   @override

@@ -700,7 +700,7 @@ class _LibraryScreenState extends State<LibraryScreen>
   Widget _buildGrid(List<Folder> allFolders) {
     final matchingIds = _matchingIds();
     final folders = _filter.filterFolders(allFolders, matchingIds);
-    return CustomScrollView(
+    final grid = CustomScrollView(
       key: PageStorageKey<String>(_libraryPageKey),
       physics: const AlwaysScrollableScrollPhysics(),
       controller: _libraryScrollController,
@@ -834,6 +834,11 @@ class _LibraryScreenState extends State<LibraryScreen>
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
+    );
+    return GridKeyboardScroll(
+      controller: _libraryScrollController,
+      autofocus: widget.isActive,
+      child: grid,
     );
   }
 
