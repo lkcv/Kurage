@@ -1,5 +1,6 @@
 // The purpose of this screen is to allow the user to search for a specific book/comic
 import 'dart:async';
+import 'dart:io';
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -16,6 +17,7 @@ import 'package:kurage/widgets/volume_actions.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/screens/collection_screen.dart' show KuroStyleBookCard;
+import 'package:kurage/widgets/cover_grid_layout.dart';
 
 // Match the Library's two 17.5px concave header corners while leaving the
 // middle transparent for content scrolling behind the header.
@@ -243,6 +245,9 @@ class _SearchScreenState extends State<SearchScreen> {
     final headerForeground = FloatingSurfacePalette.foreground(
       headerBrightness,
     );
+    final linuxGrid = Platform.isLinux
+        ? CoverGridLayout.collection(context)
+        : null;
     // Intercept Android system/gesture back. iOS edge-swipe only works for
     // pushed routes; Search is a tab, so the leading control covers that case.
     return PopScope(
@@ -377,17 +382,26 @@ class _SearchScreenState extends State<SearchScreen> {
               : GridView.builder(
                   controller: _resultsScrollController,
                   padding: EdgeInsets.fromLTRB(
-                    10,
+                    linuxGrid == null ? 10 : 4,
                     MediaQuery.of(context).padding.top + 48 + 8,
-                    10,
+                    linuxGrid == null ? 10 : 4,
                     8,
                   ),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 0.62,
-                  ),
+                  gridDelegate: linuxGrid == null
+                      ? const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 0.62,
+                        )
+                      : SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: linuxGrid.columns,
+                          crossAxisSpacing: CoverGridLayout.spacing,
+                          mainAxisSpacing: CoverGridLayout.spacing,
+                          // Reserve room for the title below the cover.
+                          childAspectRatio: linuxGrid.tileWidth /
+                              (linuxGrid.tileHeight + 20),
+                        ),
                   itemCount: searchResults.length,
                   itemBuilder: (context, i) {
                     final entry = searchResults[i];
