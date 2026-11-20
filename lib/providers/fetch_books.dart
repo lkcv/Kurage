@@ -128,6 +128,14 @@ Future<Set<String>> getComics(String comicsId) async {
         restoredPages[entry.id] = serverPage;
         logger.d('Restored Jellyfin page index $serverPage for ${entry.id}');
       }
+      // The final page is stored at (pageCount - 1) * 10000 ticks.
+      final runtimeTicks = (element['RunTimeTicks'] as num?)?.toInt();
+      if (userData?['Played'] == true ||
+          (runtimeTicks != null &&
+              runtimeTicks > 10000 &&
+              ticks >= runtimeTicks - 10000)) {
+        entry.progress = 100.0;
+      }
     }
     updated.add(entry);
   }
