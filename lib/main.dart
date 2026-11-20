@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/gestures.dart';
 import 'package:kurage/screens/login_screen.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -22,6 +23,8 @@ import 'package:provider/provider.dart';
 import 'package:kurage/providers/theme_provider.dart';
 import 'widgets/floating_snackbar.dart';
 import 'package:kurage/variables.dart';
+
+final _navigatorKey = GlobalKey<NavigatorState>();
 
 Future<String> get _localPath async {
   // get the directory that normally is located at /storage/emulated/0/Documents/
@@ -119,6 +122,34 @@ class MyApp extends StatelessWidget {
             builder: (context, themeChangeNotifier, _) {
               ThemeData themeData = themeChangeNotifier.getTheme;
               return MaterialApp(
+                navigatorKey: _navigatorKey,
+                builder: (context, child) {
+                  if (!Platform.isLinux) return child!;
+                  void goBack() => _navigatorKey.currentState?.maybePop();
+                  return CallbackShortcuts(
+                    bindings: {
+                      const SingleActivator(
+                        LogicalKeyboardKey.arrowLeft,
+                        alt: true,
+                        includeRepeats: false,
+                      ): goBack,
+                      const SingleActivator(
+                        LogicalKeyboardKey.escape,
+                        includeRepeats: false,
+                      ): goBack,
+                    },
+                    child: Listener(
+                      behavior: HitTestBehavior.translucent,
+                      onPointerDown: (event) {
+                        if (event.kind == PointerDeviceKind.mouse &&
+                            (event.buttons & kBackMouseButton) != 0) {
+                          goBack();
+                        }
+                      },
+                      child: child!,
+                    ),
+                  );
+                },
                 title: 'Kurage',
                 debugShowCheckedModeBanner: false,
                 locale: const Locale('en'),
