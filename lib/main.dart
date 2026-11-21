@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kurage/screens/login_screen.dart';
+import 'package:kurage/widgets/desktop_shortcuts_overlay.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kurage/models/app_settings.dart';
@@ -124,33 +127,9 @@ class MyApp extends StatelessWidget {
               ThemeData themeData = themeChangeNotifier.getTheme;
               return MaterialApp(
                 navigatorKey: _navigatorKey,
-                builder: (context, child) {
-                  if (!Platform.isLinux) return child!;
-                  void goBack() => _navigatorKey.currentState?.maybePop();
-                  return CallbackShortcuts(
-                    bindings: {
-                      const SingleActivator(
-                        LogicalKeyboardKey.arrowLeft,
-                        alt: true,
-                        includeRepeats: false,
-                      ): goBack,
-                      const SingleActivator(
-                        LogicalKeyboardKey.escape,
-                        includeRepeats: false,
-                      ): goBack,
-                    },
-                    child: Listener(
-                      behavior: HitTestBehavior.translucent,
-                      onPointerDown: (event) {
-                        if (event.kind == PointerDeviceKind.mouse &&
-                            (event.buttons & kBackMouseButton) != 0) {
-                          goBack();
-                        }
-                      },
-                      child: child!,
-                    ),
-                  );
-                },
+                builder: (context, child) => Platform.isLinux
+                    ? _LinuxShortcutBindings(child: child!)
+                    : child!,
                 title: 'Kurage',
                 debugShowCheckedModeBanner: false,
                 locale: const Locale('en'),
@@ -167,6 +146,73 @@ class MyApp extends StatelessWidget {
       },
     );
   }
+}
+
+// Keep desktop shortcuts above every Navigator route, including the reader.
+class _LinuxShortcutBindings extends StatefulWidget {
+  const _LinuxShortcutBindings({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_LinuxShortcutBindings> createState() => _LinuxShortcutBindingsState();
+}
+
+class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
+  DialogRoute<void>? _shortcutsRoute;
+
+  void _goBack() => _navigatorKey.currentState?.maybePop();
+
+  void _toggleShortcuts() {
+    final navigator = _navigatorKey.currentState;
+    final context = _navigatorKey.currentContext;
+    if (navigator == null || context == null) return;
+
+    final existing = _shortcutsRoute;
+    if (existing != null) {
+      if (existing.isCurrent) navigator.pop();
+      return;
+    }
+
+    final route = DialogRoute<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.18),
+      builder: (_) => const DesktopShortcutsOverlay(),
+    );
+    _shortcutsRoute = route;
+    unawaited(navigator.push(route).whenComplete(() {
+      if (mounted && identical(_shortcutsRoute, route)) _shortcutsRoute = null;
+    }));
+  }
+
+  @override
+  Widget build(BuildContext context) => CallbackShortcuts(
+    bindings: {
+      const SingleActivator(
+        LogicalKeyboardKey.f1,
+        includeRepeats: false,
+      ): _toggleShortcuts,
+      const SingleActivator(
+        LogicalKeyboardKey.arrowLeft,
+        alt: true,
+        includeRepeats: false,
+      ): _goBack,
+      const SingleActivator(
+        LogicalKeyboardKey.escape,
+        includeRepeats: false,
+      ): _goBack,
+    },
+    child: Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) {
+        if (event.kind == PointerDeviceKind.mouse &&
+            (event.buttons & kBackMouseButton) != 0) {
+          _goBack();
+        }
+      },
+      child: widget.child,
+    ),
+  );
 }
 
 // Keep the effective System theme in memory; only the user's selection is saved.
