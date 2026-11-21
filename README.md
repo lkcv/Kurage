@@ -31,6 +31,18 @@ Kurage is a manga and comic reader for [Jellyfin](https://jellyfin.org/), built 
 Android, Linux, and iOS are officially supported.
 Windows and macOS are untested.
 
+### Linux
+
+Linux requires [`pass`](https://www.passwordstore.org/) for encrypted credential storage. Install it and initialize your password store with a GPG key before signing in:
+
+```sh
+pass init YOUR_GPG_KEY_ID
+```
+
+Press **F1** to view the keyboard and mouse shortcuts.
+
+The Linux build uses [a fork of Sony's Flutter Embedded Linux](https://github.com/lkcv/flutter-embedded-linux) for native Wayland support and up to 120 FPS on compatible displays.
+
 ## Credits
 
 Kurage is a fork of [**JellyBook**](https://github.com/JellyBookOrg/JellyBook). Full credit goes to Kara Wilson and the contributors to their project for creating the foundation for Kurage.
