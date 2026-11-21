@@ -914,6 +914,16 @@ class _LibraryScreenState extends State<LibraryScreen>
     final accent =
         context.watch<ThemeChangeNotifier>().accentColor ??
         ThemeChangeNotifier.defaultAccent;
+    final filterButtonStyle = Platform.isLinux
+        ? ButtonStyle(
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: WidgetStateProperty.resolveWith<Color?>(
+              (states) => states.contains(WidgetState.pressed)
+                  ? Colors.transparent
+                  : null,
+            ),
+          )
+        : null;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: FloatingSurfaceHeader(
@@ -939,6 +949,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           Positioned(
             left: 4,
             child: IconButton(
+              style: filterButtonStyle,
               icon: Icon(
                 Icons.download_for_offline_outlined,
                 color: _filter.downloadedOnly
@@ -1072,6 +1083,7 @@ class _LibraryScreenState extends State<LibraryScreen>
           Positioned(
             right: 4,
             child: IconButton(
+              style: filterButtonStyle,
               icon: Icon(
                 Icons.chrome_reader_mode_outlined,
                 color: _filter.readingOnly
