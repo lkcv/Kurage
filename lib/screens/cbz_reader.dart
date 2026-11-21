@@ -163,6 +163,9 @@ class _CbzReaderState extends State<CbzReader>
   double _from = 0, _to = 0, _t = 0;
   Curve _legCurve = Curves.easeOutCubic;
   int _lastTarget = 0;
+  double _wheelDelta = 0;
+  DateTime? _lastWheelEvent;
+  DateTime? _lastWheelTurn;
 
   // Streaming support
   bool _isStreaming = false;
@@ -1057,6 +1060,30 @@ class _CbzReaderState extends State<CbzReader>
 
     final goForward = direction == 'rtl' ? isLeftTap : isRightTap;
     _queuePage(goForward ? 1 : -1);
+  }
+
+  void _onWheelScroll(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent || _exiting || _zoomScrollLocked) return;
+    final delta = event.scrollDelta.dy;
+    if (delta == 0) return;
+
+    final now = DateTime.now();
+    if (_lastWheelEvent == null ||
+        now.difference(_lastWheelEvent!) > const Duration(milliseconds: 250) ||
+        _wheelDelta * delta < 0) {
+      _wheelDelta = 0;
+    }
+    _lastWheelEvent = now;
+    // Avoid turning multiple pages from one burst of fine-grained scroll data.
+    if (_lastWheelTurn != null &&
+        now.difference(_lastWheelTurn!) < const Duration(milliseconds: 180)) {
+      return;
+    }
+    _wheelDelta += delta;
+    if (_wheelDelta.abs() < 100) return;
+    _queuePage(_wheelDelta > 0 ? 1 : -1);
+    _wheelDelta = 0;
+    _lastWheelTurn = now;
   }
 
   void _queuePage(int delta) {
@@ -2010,6 +2037,9 @@ class _CbzReaderState extends State<CbzReader>
             Positioned.fill(
               child: Listener(
                 behavior: HitTestBehavior.opaque,
+                onPointerSignal: Platform.isLinux && !isVertical
+                    ? _onWheelScroll
+                    : null,
                 onPointerDown: _readerPointerDown,
                 onPointerMove: _readerPointerMove,
                 onPointerUp: _readerPointerEnd,
