@@ -2,7 +2,14 @@
 // can see all their comics and manage them
 
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter/services.dart' show HapticFeedback;
+import 'dart:io';
+import 'package:flutter/services.dart'
+    show
+        HapticFeedback,
+        HardwareKeyboard,
+        KeyDownEvent,
+        KeyEvent,
+        LogicalKeyboardKey;
 import 'package:kurage/models/login.dart';
 import 'package:isar_community/isar.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -29,10 +36,13 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    if (Platform.isLinux) HardwareKeyboard.instance.addHandler(_onDesktopKey);
   }
 
   @override
   void dispose() {
+    if (Platform.isLinux)
+      HardwareKeyboard.instance.removeHandler(_onDesktopKey);
     super.dispose();
   }
 
@@ -51,6 +61,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  final _libraryKey = GlobalKey<LibraryScreenState>();
   int _selectedIndex = 0;
   // Last non-search tab so Search can return to wherever the user was
   int _previousIndex = 0;
@@ -72,6 +83,43 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       _selectedIndex = index;
     });
+  }
+
+  // Route-scoped shortcuts don't alter focus or intercept text entry.
+  bool _onDesktopKey(KeyEvent event) {
+    if (!mounted ||
+        event is! KeyDownEvent ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        HardwareKeyboard.instance.isShiftPressed ||
+        HardwareKeyboard.instance.isControlPressed ||
+        HardwareKeyboard.instance.isAltPressed ||
+        HardwareKeyboard.instance.isMetaPressed) {
+      return false;
+    }
+
+    final focused = FocusManager.instance.primaryFocus?.context;
+    if (focused?.widget is EditableText ||
+        focused?.findAncestorStateOfType<EditableTextState>() != null) {
+      return false;
+    }
+
+    switch (event.logicalKey) {
+      case LogicalKeyboardKey.keyL:
+        _onTabChange(0);
+      case LogicalKeyboardKey.space:
+        _onTabChange(_searchIndex);
+      case LogicalKeyboardKey.keyS:
+        _onTabChange(2);
+      case LogicalKeyboardKey.keyD:
+        if (_selectedIndex != 0) return false;
+        _libraryKey.currentState?.toggleDownloadedFilter();
+      case LogicalKeyboardKey.keyR:
+        if (_selectedIndex != 0) return false;
+        _libraryKey.currentState?.toggleReadingFilter();
+      default:
+        return false;
+    }
+    return true;
   }
 
   // Give each tab an equal third of the bar and allow immediate selection.
@@ -128,7 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: IndexedStack(
         index: _selectedIndex == 0 ? 0 : 1,
         children: [
-          LibraryScreen(isActive: _selectedIndex == 0),
+          LibraryScreen(key: _libraryKey, isActive: _selectedIndex == 0),
           _otherTab(),
         ],
       ),

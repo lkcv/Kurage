@@ -37,6 +37,37 @@ class DesktopShortcutsOverlay extends StatelessWidget {
                 ),
                 Divider(height: 22, color: colors.outlineVariant),
                 const _ShortcutRow(
+                  action: 'Library',
+                  keys: [
+                    ['L'],
+                  ],
+                ),
+                const _ShortcutRow(
+                  action: 'Downloaded filter',
+                  keys: [
+                    ['D'],
+                  ],
+                ),
+                const _ShortcutRow(
+                  action: 'Reading filter',
+                  keys: [
+                    ['R'],
+                  ],
+                ),
+                const _ShortcutRow(
+                  action: 'Search',
+                  keys: [
+                    ['Space'],
+                  ],
+                ),
+                const _ShortcutRow(
+                  action: 'Settings',
+                  keys: [
+                    ['S'],
+                  ],
+                ),
+                Divider(height: 22, color: colors.outlineVariant),
+                const _ShortcutRow(
                   action: 'Turn pages',
                   keys: [
                     ['←'],
@@ -140,10 +171,11 @@ class _ShortcutRow extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       for (var i = 0; i < keys[index].length; i++) ...[
-                        if (i > 0) const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Text('+'),
-                        ),
+                        if (i > 0)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4),
+                            child: Text('+'),
+                          ),
                         _Keycap(keys[index][i]),
                       ],
                     ],
@@ -163,7 +195,10 @@ class _ShortcutRow extends StatelessWidget {
                     children: [
                       for (var i = 0; i < mouse!.length; i++) ...[
                         if (i > 0)
-                          Text('/', style: TextStyle(color: colors.onSurfaceVariant)),
+                          Text(
+                            '/',
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

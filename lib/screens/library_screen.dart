@@ -38,10 +38,10 @@ class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key, this.isActive = true});
 
   @override
-  State<LibraryScreen> createState() => _LibraryScreenState();
+  State<LibraryScreen> createState() => LibraryScreenState();
 }
 
-class _LibraryScreenState extends State<LibraryScreen>
+class LibraryScreenState extends State<LibraryScreen>
     with WidgetsBindingObserver {
   static const double _gridTopGap = 12;
 
@@ -81,8 +81,10 @@ class _LibraryScreenState extends State<LibraryScreen>
   List<Folder>? _lastFolders;
   // Each filter combination retains its own scroll position.
   final ScrollController _allScrollController = createGridScrollController();
-  final ScrollController _downloadedScrollController = createGridScrollController();
-  final ScrollController _readingScrollController = createGridScrollController();
+  final ScrollController _downloadedScrollController =
+      createGridScrollController();
+  final ScrollController _readingScrollController =
+      createGridScrollController();
   final ScrollController _downloadedReadingScrollController =
       createGridScrollController();
   ScrollController get _libraryScrollController {
@@ -180,6 +182,12 @@ class _LibraryScreenState extends State<LibraryScreen>
     _scheduleCoverWarming();
     _scheduleSpeculative();
   }
+
+  void toggleDownloadedFilter() =>
+      _selectFilter(_filter.copyWith(downloadedOnly: !_filter.downloadedOnly));
+
+  void toggleReadingFilter() =>
+      _selectFilter(_filter.copyWith(readingOnly: !_filter.readingOnly));
 
   bool _inForeground = true;
   bool _startupSyncScheduled = false;
@@ -959,11 +967,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               tooltip: _filter.downloadedOnly
                   ? 'Disable Downloaded filter'
                   : 'Show downloaded series',
-              onPressed: () {
-                _selectFilter(
-                  _filter.copyWith(downloadedOnly: !_filter.downloadedOnly),
-                );
-              },
+              onPressed: toggleDownloadedFilter,
             ),
           ),
           // Only this header control observes the download queue;
@@ -1093,9 +1097,7 @@ class _LibraryScreenState extends State<LibraryScreen>
               tooltip: _filter.readingOnly
                   ? 'Disable Continue Reading filter'
                   : 'Show series being read',
-              onPressed: () => _selectFilter(
-                _filter.copyWith(readingOnly: !_filter.readingOnly),
-              ),
+              onPressed: toggleReadingFilter,
             ),
           ),
         ],
