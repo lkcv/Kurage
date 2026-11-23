@@ -1089,37 +1089,41 @@ class _CbzReaderState extends State<CbzReader>
     _lastWheelTurn = now;
   }
 
-  void _onGamepad(String action, bool pressed) {
+  bool _onGamepad(String action, bool pressed) {
     if (!pressed ||
         !mounted ||
         _loading ||
         _exiting ||
         !_appResumed ||
         ModalRoute.of(context)?.isCurrent != true) {
-      return;
+      return false;
     }
 
     switch (action) {
       case 'left' || 'right':
-        if (direction != 'vertical') {
-          final forward = action == (direction == 'rtl' ? 'left' : 'right');
-          _stepPage(forward ? 1 : -1);
-        }
+        if (direction == 'vertical') return false;
+        final forward = action == (direction == 'rtl' ? 'left' : 'right');
+        _stepPage(forward ? 1 : -1);
+        return true;
       case 'up' || 'down':
-        if (direction == 'vertical') {
-          _scrollVertical(action == 'down' ? 1 : -1);
-        }
+        if (direction != 'vertical') return false;
+        _scrollVertical(action == 'down' ? 1 : -1);
+        return true;
       case 'l1' || 'r1':
         if (direction == 'vertical') {
           _scrollVertical(action == 'r1' ? 1 : -1);
         } else {
           _stepPage(action == 'r1' ? 1 : -1);
         }
+        return true;
       case 'confirm' || 'menu':
         _toggleOverlay();
+        return true;
       case 'back':
         _exit();
+        return true;
     }
+    return false;
   }
 
   void _scrollVertical(int step) {

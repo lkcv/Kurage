@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-typedef GamepadListener = void Function(String action, bool pressed);
+typedef GamepadListener = bool Function(String action, bool pressed);
 
 /// Receives normalized button transitions from the eLinux Wayland embedder.
 class LinuxGamepadInput {
@@ -17,8 +17,9 @@ class LinuxGamepadInput {
       if (separator < 0) return '';
       final action = message.substring(0, separator);
       final pressed = message.substring(separator + 1) == 'down';
-      for (final listener in List<GamepadListener>.of(_listeners)) {
-        listener(action, pressed);
+      // Newest (usually most deeply nested) listeners handle events first.
+      for (final listener in List<GamepadListener>.of(_listeners).reversed) {
+        if (listener(action, pressed)) break;
       }
       return '';
     });

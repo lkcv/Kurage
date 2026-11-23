@@ -191,15 +191,25 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
     super.dispose();
   }
 
-  void _onGamepad(String action, bool pressed) {
-    if (!mounted || !_canSelect || ModalRoute.of(context)?.isCurrent != true ||
+  bool _onGamepad(String action, bool pressed) {
+    if (!mounted ||
+        !_canSelect ||
+        ModalRoute.of(context)?.isCurrent != true ||
         (widget.gamepadFocusAllowed != null &&
             !widget.gamepadFocusAllowed!())) {
-      return;
+      return false;
+    }
+    // Match Escape: clear an active selection before navigating away.
+    if (action == 'back') {
+      if (!pressed || widget.selection!.value == null) return false;
+      _stop();
+      widget.selection!.value = null;
+      widget.onExitSelection?.call();
+      return true;
     }
     final focus = widget.focusNode ?? _ownedFocusNode;
     if (!focus.hasPrimaryFocus) {
-      if (!pressed || widget.gamepadFocusAllowed?.call() != true) return;
+      if (!pressed || widget.gamepadFocusAllowed?.call() != true) return false;
       focus.requestFocus();
     }
     final direction = switch (action) {
@@ -215,23 +225,17 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
       } else if (_heldDirection == direction) {
         _stop();
       }
-      return;
+      return true;
     }
-    if (!pressed) return;
+    if (!pressed) return false;
     if (action == 'confirm') {
       final selected = widget.selection!.value;
-      if (selected != null) unawaited(_activate(selected));
-    } else if (action == 'back') {
-      _stop();
-      if (widget.selection!.value != null) {
-        widget.selection!.value = null;
-        widget.onExitSelection?.call();
-      } else if (widget.onExitSelection != null) {
-        widget.onExitSelection!.call();
-      } else {
-        unawaited(Navigator.of(context).maybePop());
+      if (selected != null) {
+        unawaited(_activate(selected));
+        return true;
       }
     }
+    return false;
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/gestures.dart';
 import 'package:kurage/screens/login_screen.dart';
 import 'package:kurage/widgets/desktop_shortcuts_overlay.dart';
+import 'package:kurage/widgets/linux_gamepad_input.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:kurage/models/app_settings.dart';
@@ -161,7 +162,34 @@ class _LinuxShortcutBindings extends StatefulWidget {
 class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
   DialogRoute<void>? _shortcutsRoute;
 
+  @override
+  void initState() {
+    super.initState();
+    LinuxGamepadInput.instance.addListener(_onGamepad);
+  }
+
+  @override
+  void dispose() {
+    LinuxGamepadInput.instance.removeListener(_onGamepad);
+    LinuxGamepadInput.instance.removeListener(_onShortcutDialogGamepad);
+    super.dispose();
+  }
+
   void _goBack() => _navigatorKey.currentState?.maybePop();
+
+  // Fallback after the active reader/grid has had a chance to handle Back.
+  bool _onGamepad(String action, bool pressed) {
+    if (!pressed || action != 'back') return false;
+    _goBack();
+    return true;
+  }
+
+  // The F1 dialog sits above nested reader routes; don't pass input behind it.
+  bool _onShortcutDialogGamepad(String action, bool pressed) {
+    if (_shortcutsRoute?.isCurrent != true) return false;
+    if (pressed && action == 'back') _goBack();
+    return true;
+  }
 
   void _toggleShortcuts() {
     final navigator = _navigatorKey.currentState;
@@ -180,8 +208,10 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
       builder: (_) => const DesktopShortcutsOverlay(),
     );
     _shortcutsRoute = route;
+    LinuxGamepadInput.instance.addListener(_onShortcutDialogGamepad);
     unawaited(
       navigator.push(route).whenComplete(() {
+        LinuxGamepadInput.instance.removeListener(_onShortcutDialogGamepad);
         if (mounted && identical(_shortcutsRoute, route)) {
           _shortcutsRoute = null;
         }
