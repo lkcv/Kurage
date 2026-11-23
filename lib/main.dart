@@ -182,8 +182,9 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
     _shortcutsRoute = route;
     unawaited(
       navigator.push(route).whenComplete(() {
-        if (mounted && identical(_shortcutsRoute, route))
+        if (mounted && identical(_shortcutsRoute, route)) {
           _shortcutsRoute = null;
+        }
       }),
     );
   }
