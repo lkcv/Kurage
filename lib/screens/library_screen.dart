@@ -173,6 +173,7 @@ class LibraryScreenState extends State<LibraryScreen>
       _filter.filterFolders(all, _matchingIds());
 
   void _selectFilter(LibraryFilter next) {
+    _gridSelection.value = null;
     setState(() {
       _filter = next;
       _readingIdsCache = null;
@@ -204,6 +205,7 @@ class LibraryScreenState extends State<LibraryScreen>
 
   // Tell visible cards to recalculate progress after leaving a collection.
   final ValueNotifier<int> _progressRevision = ValueNotifier<int>(0);
+  final ValueNotifier<int?> _gridSelection = ValueNotifier<int?>(null);
 
   @override
   void initState() {
@@ -705,6 +707,81 @@ class LibraryScreenState extends State<LibraryScreen>
     );
   }
 
+  Future<void> _openFolder(Folder folder) async {
+    _stopSpeculative();
+    final collectionRoute = PageRouteBuilder<void>(
+      pageBuilder: (context, animation, secondaryAnimation) =>
+          CollectionScreen(
+            folderId: folder.id,
+            name: folder.name,
+            image: folder.image,
+            bookIds: folder.bookIds,
+            downloadedOnly: _filter.downloadedOnly,
+            readingOnly: _filter.readingOnly,
+          ),
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(
+        milliseconds: 240,
+      ),
+      transitionsBuilder: (context, animation, _, child) {
+        final progress = animation.drive(
+          CurveTween(curve: Curves.easeOutCubic),
+        );
+        return FadeTransition(
+          opacity: progress,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.018, 0),
+              end: Offset.zero,
+            ).animate(progress),
+            child: child,
+          ),
+        );
+      },
+    );
+    await Navigator.of(context).push<void>(collectionRoute);
+    // Navigator.push completes when pop begins. Wait for the
+    // reverse animation to finish before revalidating covers.
+    await collectionRoute.completed;
+    _scheduleSpeculative();
+    // Read saved progress from Isar, not from the server.
+    if (mounted) {
+      // Returning from a filtered Collection may have
+      // changed Reading progress or download eligibility.
+      _readingIdsCache = null;
+      final showAll =
+          _filter.isActive &&
+          _lastFolders != null &&
+          _visibleFolders(_lastFolders!).isEmpty;
+      setState(() {
+        if (showAll) _filter = const LibraryFilter();
+      });
+      _progressRevision.value++;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.isActive) {
+          // Re-resolve visible covers after reader decoding.
+          _coverPrewarmer.revalidate();
+          _scheduleCoverWarming();
+          _refreshOnLibraryReturnIfStale();
+        }
+      });
+      if (showAll) {
+        // Use the existing All scroll controller and warm
+        // its visible covers, exactly as with a manual toggle.
+        _coverSignature = null;
+        _scheduleCoverWarming();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No matching volumes remaining — showing all series',
+            ),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildGrid(List<Folder> allFolders) {
     final matchingIds = _matchingIds();
     final folders = _filter.filterFolders(allFolders, matchingIds);
@@ -751,90 +828,21 @@ class LibraryScreenState extends State<LibraryScreen>
               gridDelegate: CoverGridLayout.library(context).delegate,
               delegate: SliverChildBuilderDelegate((context, index) {
                 final folder = folders[index];
-                return ValueListenableBuilder<int>(
-                  valueListenable: _progressRevision,
-                  builder: (context, _, _) => SeriesCard(
-                    folder: folder,
-                    onLongPress: () => _showSeriesActions(folder),
-                    matchingCount: _filter.matchingVolumeCount(
-                      folder,
-                      matchingIds,
+                return GridSelectionIndicator(
+                  selection: _gridSelection,
+                  index: index,
+                  child: ValueListenableBuilder<int>(
+                    valueListenable: _progressRevision,
+                    builder: (context, _, _) => SeriesCard(
+                      folder: folder,
+                      onLongPress: () => _showSeriesActions(folder),
+                      matchingCount: _filter.matchingVolumeCount(
+                        folder,
+                        matchingIds,
+                      ),
+                      filter: _filter,
+                      onTap: () => _openFolder(folder),
                     ),
-                    filter: _filter,
-                    onTap: () async {
-                      _stopSpeculative();
-                      final collectionRoute = PageRouteBuilder<void>(
-                        pageBuilder: (context, animation, secondaryAnimation) =>
-                            CollectionScreen(
-                              folderId: folder.id,
-                              name: folder.name,
-                              image: folder.image,
-                              bookIds: folder.bookIds,
-                              downloadedOnly: _filter.downloadedOnly,
-                              readingOnly: _filter.readingOnly,
-                            ),
-                        transitionDuration: const Duration(milliseconds: 280),
-                        reverseTransitionDuration: const Duration(
-                          milliseconds: 240,
-                        ),
-                        transitionsBuilder: (context, animation, _, child) {
-                          final progress = animation.drive(
-                            CurveTween(curve: Curves.easeOutCubic),
-                          );
-                          return FadeTransition(
-                            opacity: progress,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.018, 0),
-                                end: Offset.zero,
-                              ).animate(progress),
-                              child: child,
-                            ),
-                          );
-                        },
-                      );
-                      await Navigator.of(context).push<void>(collectionRoute);
-                      // Navigator.push completes when pop begins. Wait for the
-                      // reverse animation to finish before revalidating covers.
-                      await collectionRoute.completed;
-                      _scheduleSpeculative();
-                      // Read saved progress from Isar, not from the server.
-                      if (mounted) {
-                        // Returning from a filtered Collection may have
-                        // changed Reading progress or download eligibility.
-                        _readingIdsCache = null;
-                        final showAll =
-                            _filter.isActive &&
-                            _lastFolders != null &&
-                            _visibleFolders(_lastFolders!).isEmpty;
-                        setState(() {
-                          if (showAll) _filter = const LibraryFilter();
-                        });
-                        _progressRevision.value++;
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (mounted && widget.isActive) {
-                            // Re-resolve visible covers after reader decoding.
-                            _coverPrewarmer.revalidate();
-                            _scheduleCoverWarming();
-                            _refreshOnLibraryReturnIfStale();
-                          }
-                        });
-                        if (showAll) {
-                          // Use the existing All scroll controller and warm
-                          // its visible covers, exactly as with a manual toggle.
-                          _coverSignature = null;
-                          _scheduleCoverWarming();
-                          ScaffoldMessenger.of(this.context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'No matching volumes remaining — showing all series',
-                              ),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        }
-                      }
-                    },
                   ),
                 );
               }, childCount: folders.length),
@@ -843,9 +851,18 @@ class LibraryScreenState extends State<LibraryScreen>
         const SliverToBoxAdapter(child: SizedBox(height: 80)),
       ],
     );
+    final layout = CoverGridLayout.library(context);
     return GridKeyboardScroll(
       controller: _libraryScrollController,
       autofocus: widget.isActive,
+      selection: _gridSelection,
+      itemCount: folders.length,
+      columns: layout.columns,
+      rowExtent: layout.rowHeight,
+      contentStart: _headerHeight(context) + _gridTopGap,
+      topOcclusion: _headerHeight(context),
+      bottomOcclusion: 70,
+      onActivate: (index) => _openFolder(folders[index]),
       child: grid,
     );
   }
@@ -866,6 +883,7 @@ class LibraryScreenState extends State<LibraryScreen>
     _downloadedReadingScrollController.dispose();
     _connectionManager?.removeListener(_onConnectionChanged);
     _progressRevision.dispose();
+    _gridSelection.dispose();
     super.dispose();
   }
 
