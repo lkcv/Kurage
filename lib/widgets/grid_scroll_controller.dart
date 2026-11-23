@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
+import 'package:flutter/foundation.dart' show ValueListenable;
+import 'package:material_ui/material_ui.dart' show Theme;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
@@ -10,18 +13,36 @@ import 'package:flutter/widgets.dart';
 ScrollController createGridScrollController() =>
     Platform.isLinux ? _SmoothWheelScrollController() : ScrollController();
 
-/// Let desktop arrow keys use the same easing as mouse-wheel scrolling.
+/// Navigate Linux cover grids with the keyboard; mouse wheels scroll freely.
+enum _GridDirection { left, right, up, down }
+
 class GridKeyboardScroll extends StatefulWidget {
   const GridKeyboardScroll({
     super.key,
     required this.controller,
     required this.child,
     this.autofocus = false,
+    this.selection,
+    this.itemCount = 0,
+    this.columns = 1,
+    this.rowExtent = 0,
+    this.contentStart = 0,
+    this.topOcclusion = 0,
+    this.bottomOcclusion = 0,
+    this.onActivate,
   });
 
   final ScrollController controller;
   final Widget child;
   final bool autofocus;
+  final ValueNotifier<int?>? selection;
+  final int itemCount;
+  final int columns;
+  final double rowExtent;
+  final double contentStart;
+  final double topOcclusion;
+  final double bottomOcclusion;
+  final ValueChanged<int>? onActivate;
 
   @override
   State<GridKeyboardScroll> createState() => _GridKeyboardScrollState();
@@ -29,18 +50,117 @@ class GridKeyboardScroll extends StatefulWidget {
 
 class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   Timer? _holdTimer;
-  int? _heldDirection;
+  _GridDirection? _heldDirection;
 
-  void _scroll(double delta) {
-    if (widget.controller.hasClients) {
-      widget.controller.position.pointerScroll(delta);
-    }
-  }
+  static const _initialRepeatDelay = Duration(milliseconds: 330);
+  static const _repeatInterval = Duration(milliseconds: 120);
+
+  bool get _canSelect =>
+      widget.selection != null &&
+      widget.itemCount > 0 &&
+      widget.columns > 0 &&
+      widget.rowExtent > 0;
 
   void _stop() {
     _holdTimer?.cancel();
     _holdTimer = null;
     _heldDirection = null;
+  }
+
+  int _firstVisibleIndex() {
+    if (!widget.controller.hasClients || widget.controller.offset <= 0) {
+      return 0;
+    }
+    final firstRow =
+        ((widget.controller.offset +
+                    widget.topOcclusion -
+                    widget.contentStart) /
+                widget.rowExtent)
+            .ceil()
+            .clamp(0, widget.itemCount - 1);
+    return (firstRow * widget.columns).clamp(0, widget.itemCount - 1);
+  }
+
+  Future<void> _ensureVisible(int index) async {
+    if (!widget.controller.hasClients) return;
+    final position = widget.controller.position;
+    final top =
+        widget.contentStart + (index ~/ widget.columns) * widget.rowExtent;
+    final bottom = top + widget.rowExtent;
+    final offset = position.pixels;
+    double? target;
+    if (top < offset + widget.topOcclusion) {
+      target = top - widget.topOcclusion;
+    } else if (bottom >
+        offset + position.viewportDimension - widget.bottomOcclusion) {
+      target = bottom - position.viewportDimension + widget.bottomOcclusion;
+    }
+    if (target == null) return;
+    final bounded = target
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if ((bounded - offset).abs() < 1) return;
+    await widget.controller.animateTo(
+      bounded,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _moveSelection(_GridDirection direction) {
+    if (!_canSelect) return;
+    final selection = widget.selection!;
+    final selected = selection.value;
+    if (selected == null) {
+      final first = _firstVisibleIndex();
+      selection.value = first;
+      unawaited(_ensureVisible(first));
+      return;
+    }
+    final current = selected.clamp(0, widget.itemCount - 1).toInt();
+    final next = switch (direction) {
+      _GridDirection.left =>
+        current % widget.columns == 0 ? current : current - 1,
+      _GridDirection.right =>
+        current % widget.columns == widget.columns - 1
+            ? current
+            : (current + 1).clamp(0, widget.itemCount - 1).toInt(),
+      _GridDirection.up =>
+        (current - widget.columns).clamp(0, widget.itemCount - 1).toInt(),
+      _GridDirection.down =>
+        (current + widget.columns).clamp(0, widget.itemCount - 1).toInt(),
+    };
+    if (next == current) return;
+    selection.value = next;
+    unawaited(_ensureVisible(next));
+  }
+
+  void _startHold(_GridDirection direction) {
+    if (_heldDirection == direction) return;
+    _stop();
+    _heldDirection = direction;
+    _moveSelection(direction);
+    // Repeat independently of OS keyboard repeat (absent in the embedder).
+    _holdTimer = Timer(_initialRepeatDelay, () {
+      if (!mounted || !_canSelect || _heldDirection != direction) {
+        _stop();
+        return;
+      }
+      _moveSelection(direction);
+      _holdTimer = Timer.periodic(_repeatInterval, (_) {
+        if (!mounted || !_canSelect || _heldDirection != direction) {
+          _stop();
+          return;
+        }
+        _moveSelection(direction);
+      });
+    });
+  }
+
+  Future<void> _activate(int index) async {
+    await _ensureVisible(index);
+    if (!mounted || widget.selection?.value != index) return;
+    widget.onActivate?.call(index);
   }
 
   @override
@@ -57,36 +177,50 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     final direction = switch (event.logicalKey) {
-      LogicalKeyboardKey.arrowUp => -1,
-      LogicalKeyboardKey.arrowDown => 1,
-      _ => 0,
+      LogicalKeyboardKey.arrowLeft => _GridDirection.left,
+      LogicalKeyboardKey.arrowRight => _GridDirection.right,
+      LogicalKeyboardKey.arrowUp => _GridDirection.up,
+      LogicalKeyboardKey.arrowDown => _GridDirection.down,
+      _ => null,
     };
-    if (direction == 0) return KeyEventResult.ignored;
-
     if (event is KeyUpEvent) {
-      if (_heldDirection == direction) _stop();
-      return KeyEventResult.handled;
+      if (direction == _heldDirection) _stop();
+      return direction != null && _canSelect
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
-    if (event is KeyRepeatEvent) return KeyEventResult.handled;
+    if (event is KeyRepeatEvent) {
+      return direction != null && _canSelect
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
+    }
     if (event is! KeyDownEvent ||
         HardwareKeyboard.instance.isShiftPressed ||
         HardwareKeyboard.instance.isControlPressed ||
         HardwareKeyboard.instance.isAltPressed ||
-        HardwareKeyboard.instance.isMetaPressed ||
-        !widget.controller.hasClients) {
+        HardwareKeyboard.instance.isMetaPressed) {
       return KeyEventResult.ignored;
     }
 
-    if (_heldDirection != direction) {
-      _stop();
-      _heldDirection = direction;
-      _scroll(direction * 50);
-      // The Wayland embedder doesn't synthesize keyboard repeat events.
-      _holdTimer = Timer.periodic(const Duration(milliseconds: 50), (_) {
-        _scroll(direction * 25);
-      });
+    if (!_canSelect) return KeyEventResult.ignored;
+    if (direction != null) {
+      _startHold(direction);
+      return KeyEventResult.handled;
     }
-    return KeyEventResult.handled;
+
+    if (widget.selection!.value case final int selected) {
+      if (event.logicalKey == LogicalKeyboardKey.enter ||
+          event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+        unawaited(_activate(selected));
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.escape) {
+        _stop();
+        widget.selection!.value = null;
+        return KeyEventResult.handled;
+      }
+    }
+    return KeyEventResult.ignored;
   }
 
   @override
@@ -100,7 +234,60 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
       onFocusChange: (focused) {
         if (!focused) _stop();
       },
-      child: widget.child,
+      child: widget.selection == null
+          ? widget.child
+          : Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (event) {
+                if (event.kind == PointerDeviceKind.mouse) {
+                  _stop();
+                  widget.selection!.value = null;
+                }
+              },
+              onPointerSignal: (event) {
+                if (event is PointerScrollEvent) {
+                  _stop();
+                  widget.selection!.value = null;
+                }
+              },
+              child: widget.child,
+            ),
+    );
+  }
+}
+
+/// Paint a selection outline without rebuilding the cover or changing its size.
+class GridSelectionIndicator extends StatelessWidget {
+  const GridSelectionIndicator({
+    super.key,
+    required this.selection,
+    required this.index,
+    required this.child,
+  });
+
+  final ValueListenable<int?> selection;
+  final int index;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Platform.isLinux) return child;
+    return ValueListenableBuilder<int?>(
+      valueListenable: selection,
+      child: child,
+      builder: (context, selected, child) => DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(17),
+          border: selected == index
+              ? Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 3,
+                )
+              : null,
+        ),
+        child: child!,
+      ),
     );
   }
 }
