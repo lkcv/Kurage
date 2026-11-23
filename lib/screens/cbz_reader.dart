@@ -1084,7 +1084,7 @@ class _CbzReaderState extends State<CbzReader>
     }
     _wheelDelta += delta;
     if (_wheelDelta.abs() < 100) return;
-    _queuePage(_wheelDelta > 0 ? 1 : -1);
+    _stepPage(_wheelDelta > 0 ? 1 : -1);
     _wheelDelta = 0;
     _lastWheelTurn = now;
   }
@@ -1103,7 +1103,7 @@ class _CbzReaderState extends State<CbzReader>
       case 'left' || 'right':
         if (direction != 'vertical') {
           final forward = action == (direction == 'rtl' ? 'left' : 'right');
-          _queuePage(forward ? 1 : -1);
+          _stepPage(forward ? 1 : -1);
         }
       case 'up' || 'down':
         if (direction == 'vertical') {
@@ -1113,7 +1113,7 @@ class _CbzReaderState extends State<CbzReader>
         if (direction == 'vertical') {
           _scrollVertical(action == 'r1' ? 1 : -1);
         } else {
-          _queuePage(action == 'r1' ? 1 : -1);
+          _stepPage(action == 'r1' ? 1 : -1);
         }
       case 'confirm' || 'menu':
         _toggleOverlay();
@@ -1136,6 +1136,17 @@ class _CbzReaderState extends State<CbzReader>
         curve: Curves.easeOutCubic,
       ),
     );
+  }
+
+  // Direct desktop turns must not wait behind animated edge-tap turns.
+  void _stepPage(int delta) {
+    final controller = _pageController;
+    if (controller == null || !controller.hasClients || pageNums == 0) return;
+    final current = (controller.page ?? _currentPage.toDouble()).round();
+    final target = current + delta;
+    if (target < 0 || target >= pageNums) return;
+    _cancelTapAnimation();
+    controller.jumpToPage(target);
   }
 
   void _queuePage(int delta) {
