@@ -36,6 +36,7 @@ class CollectionScreen extends StatefulWidget {
   final List<String> bookIds;
   final bool downloadedOnly;
   final bool readingOnly;
+  final bool selectFirstVolume;
 
   const CollectionScreen({
     super.key,
@@ -45,6 +46,7 @@ class CollectionScreen extends StatefulWidget {
     required this.bookIds,
     this.downloadedOnly = false,
     this.readingOnly = false,
+    this.selectFirstVolume = false,
   });
 
   @override
@@ -103,6 +105,7 @@ class _CollectionScreenState extends State<CollectionScreen>
   @override
   void initState() {
     super.initState();
+    if (widget.selectFirstVolume) _gridSelection.value = 0;
     folderId = widget.folderId;
     name = widget.name;
     image = widget.image;

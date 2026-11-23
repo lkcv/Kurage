@@ -710,19 +710,17 @@ class LibraryScreenState extends State<LibraryScreen>
   Future<void> _openFolder(Folder folder) async {
     _stopSpeculative();
     final collectionRoute = PageRouteBuilder<void>(
-      pageBuilder: (context, animation, secondaryAnimation) =>
-          CollectionScreen(
-            folderId: folder.id,
-            name: folder.name,
-            image: folder.image,
-            bookIds: folder.bookIds,
-            downloadedOnly: _filter.downloadedOnly,
-            readingOnly: _filter.readingOnly,
-          ),
-      transitionDuration: const Duration(milliseconds: 280),
-      reverseTransitionDuration: const Duration(
-        milliseconds: 240,
+      pageBuilder: (context, animation, secondaryAnimation) => CollectionScreen(
+        folderId: folder.id,
+        name: folder.name,
+        image: folder.image,
+        bookIds: folder.bookIds,
+        downloadedOnly: _filter.downloadedOnly,
+        readingOnly: _filter.readingOnly,
+        selectFirstVolume: Platform.isLinux && _gridSelection.value != null,
       ),
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(milliseconds: 240),
       transitionsBuilder: (context, animation, _, child) {
         final progress = animation.drive(
           CurveTween(curve: Curves.easeOutCubic),
@@ -772,9 +770,7 @@ class LibraryScreenState extends State<LibraryScreen>
         _scheduleCoverWarming();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'No matching volumes remaining — showing all series',
-            ),
+            content: Text('No matching volumes remaining — showing all series'),
             duration: Duration(seconds: 2),
           ),
         );

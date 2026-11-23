@@ -32,7 +32,6 @@ class GridKeyboardScroll extends StatefulWidget {
     this.topOcclusion = 0,
     this.bottomOcclusion = 0,
     this.onActivate,
-    this.onExitSelection,
     this.gamepadFocusAllowed,
   });
 
@@ -48,7 +47,6 @@ class GridKeyboardScroll extends StatefulWidget {
   final double topOcclusion;
   final double bottomOcclusion;
   final ValueChanged<int>? onActivate;
-  final VoidCallback? onExitSelection;
   final bool Function()? gamepadFocusAllowed;
 
   @override
@@ -199,13 +197,10 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
             !widget.gamepadFocusAllowed!())) {
       return false;
     }
-    // Match Escape: clear an active selection before navigating away.
+    // Back navigates immediately; the highlight is retained on return.
     if (action == 'back') {
-      if (!pressed || widget.selection!.value == null) return false;
-      _stop();
-      widget.selection!.value = null;
-      widget.onExitSelection?.call();
-      return true;
+      if (pressed) _stop();
+      return false;
     }
     final focus = widget.focusNode ?? _ownedFocusNode;
     if (!focus.hasPrimaryFocus) {
@@ -266,6 +261,11 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
       return KeyEventResult.ignored;
     }
 
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      _stop();
+      return KeyEventResult.ignored;
+    }
+
     if (!_canSelect) return KeyEventResult.ignored;
     if (direction != null) {
       _startHold(direction);
@@ -276,12 +276,6 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
       if (event.logicalKey == LogicalKeyboardKey.enter ||
           event.logicalKey == LogicalKeyboardKey.numpadEnter) {
         unawaited(_activate(selected));
-        return KeyEventResult.handled;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.escape) {
-        _stop();
-        widget.selection!.value = null;
-        widget.onExitSelection?.call();
         return KeyEventResult.handled;
       }
     }

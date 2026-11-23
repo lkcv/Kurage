@@ -522,7 +522,6 @@ class _SearchScreenState extends State<SearchScreen>
         final rect = _resultCards[entry.id]?.coverRect ?? Rect.zero;
         unawaited(_openResult(entry, rect));
       },
-      onExitSelection: () => _searchFocusNode.requestFocus(),
       gamepadFocusAllowed: () =>
           _searchFocusNode.hasFocus || _gridFocusNode.hasFocus,
       child: screen,
