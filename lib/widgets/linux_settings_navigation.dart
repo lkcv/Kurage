@@ -6,10 +6,16 @@ import 'package:kurage/widgets/linux_gamepad_input.dart';
 
 /// Use Flutter's own focus traversal and activation for desktop settings.
 class LinuxSettingsNavigation extends StatefulWidget {
-  const LinuxSettingsNavigation({super.key, required this.child, this.onBack});
+  const LinuxSettingsNavigation({
+    super.key,
+    required this.child,
+    this.onBack,
+    this.directionalTraversal = false,
+  });
 
   final Widget child;
   final VoidCallback? onBack;
+  final bool directionalTraversal;
 
   @override
   State<LinuxSettingsNavigation> createState() =>
@@ -62,6 +68,25 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
     }
   }
 
+  void _moveInDirection(TraversalDirection direction) {
+    if (!widget.directionalTraversal) {
+      _move(
+        direction == TraversalDirection.down ||
+            direction == TraversalDirection.right,
+      );
+      return;
+    }
+    final focus = FocusManager.instance.primaryFocus;
+    if (focus == null || focus == _rootFocus || !_rootFocus.hasFocus) {
+      _move(true);
+      return;
+    }
+    _forward =
+        direction == TraversalDirection.down ||
+        direction == TraversalDirection.right;
+    focus.focusInDirection(direction);
+  }
+
   void _activate() {
     final focus = FocusManager.instance.primaryFocus;
     if (focus == null || focus == _rootFocus || !_rootFocus.hasFocus) {
@@ -78,12 +103,16 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
     if (!mounted || ModalRoute.of(context)?.isCurrent != true) return false;
     switch (action) {
       case 'up':
+        if (pressed) _moveInDirection(TraversalDirection.up);
+        return true;
       case 'left':
-        if (pressed) _move(false);
+        if (pressed) _moveInDirection(TraversalDirection.left);
         return true;
       case 'down':
+        if (pressed) _moveInDirection(TraversalDirection.down);
+        return true;
       case 'right':
-        if (pressed) _move(true);
+        if (pressed) _moveInDirection(TraversalDirection.right);
         return true;
       case 'confirm':
         if (pressed) _activate();
@@ -111,13 +140,21 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
       return KeyEventResult.ignored;
     }
     switch (event.logicalKey) {
+      case LogicalKeyboardKey.tab:
+      case LogicalKeyboardKey.enter:
+      case LogicalKeyboardKey.numpadEnter:
+            return KeyEventResult.ignored;
       case LogicalKeyboardKey.arrowUp:
+        _moveInDirection(TraversalDirection.up);
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowLeft:
-        _move(false);
+        _moveInDirection(TraversalDirection.left);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowDown:
+        _moveInDirection(TraversalDirection.down);
+        return KeyEventResult.handled;
       case LogicalKeyboardKey.arrowRight:
-        _move(true);
+        _moveInDirection(TraversalDirection.right);
         return KeyEventResult.handled;
       case LogicalKeyboardKey.escape:
         if (widget.onBack != null) {

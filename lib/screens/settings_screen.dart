@@ -485,6 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (sheetContext) => LinuxSettingsNavigation(
+        directionalTraversal: true,
         child: Consumer<ThemeChangeNotifier>(
           builder: (context, notifier, _) => SafeArea(
             top: false,
@@ -508,33 +509,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           button: true,
                           selected: notifier.accentColor == entry.color,
                           label: entry.name,
-                          child: InkWell(
-                            customBorder: const CircleBorder(),
-                            splashFactory: NoSplash.splashFactory,
-                            highlightColor: Colors.transparent,
-                            onTap: () {
-                              notifier.setAccentColor = entry.color;
-                            },
-                            child: SizedBox(
-                              width: 64,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  _accentPreviewCircle(
-                                    accent: entry.color,
-                                    selected:
-                                        notifier.accentColor == entry.color,
-                                    showSelectionRing: true,
-                                  ),
-                                  const SizedBox(height: 5),
-                                  Text(
-                                    entry.name,
-                                    maxLines: 1,
-                                    style: Theme.of(
-                                      sheetContext,
-                                    ).textTheme.labelSmall,
-                                  ),
-                                ],
+                          child: _AccentSwatch(
+                            name: entry.name,
+                            onTap: () => notifier.setAccentColor = entry.color,
+                            preview: SizedBox.square(
+                              dimension: 56,
+                              child: Center(
+                                child: _accentPreviewCircle(
+                                  accent: entry.color,
+                                  selected: notifier.accentColor == entry.color,
+                                  showSelectionRing: true,
+                                ),
                               ),
                             ),
                           ),
@@ -555,12 +540,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onPressed: () {
                       notifier.setAccentColor = null;
                     },
-                    icon: _accentPreviewCircle(
-                      accent: ThemeChangeNotifier.defaultAccent,
-                      isDefault: true,
-                      size: 18,
-                      selected: notifier.accentColor == null,
-                      showSelectionRing: true,
+                    icon: SizedBox.square(
+                      dimension: 28,
+                      child: Center(
+                        child: _accentPreviewCircle(
+                          accent: ThemeChangeNotifier.defaultAccent,
+                          isDefault: true,
+                          size: 18,
+                          selected: notifier.accentColor == null,
+                          showSelectionRing: true,
+                        ),
+                      ),
                     ),
                     label: const Text('Use default'),
                   ),
@@ -703,5 +693,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
       imageProvider = MemoryImage(image);
     }
     return imageProvider;
+  }
+}
+
+/// Keep keyboard focus separate from the applied-color selection ring.
+class _AccentSwatch extends StatefulWidget {
+  const _AccentSwatch({
+    required this.name,
+    required this.preview,
+    required this.onTap,
+  });
+
+  final String name;
+  final Widget preview;
+  final VoidCallback onTap;
+
+  @override
+  State<_AccentSwatch> createState() => _AccentSwatchState();
+}
+
+class _AccentSwatchState extends State<_AccentSwatch> {
+  bool _focused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      customBorder: const CircleBorder(),
+      splashFactory: NoSplash.splashFactory,
+      highlightColor: Colors.transparent,
+      overlayColor: Platform.isLinux
+          ? const WidgetStatePropertyAll(Colors.transparent)
+          : null,
+      onFocusChange: (focused) {
+        if (Platform.isLinux) setState(() => _focused = focused);
+      },
+      onTap: widget.onTap,
+      child: SizedBox(
+        width: 64,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (Platform.isLinux)
+              SizedBox.square(
+                dimension: 64,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    if (_focused)
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.primary,
+                            width: 2,
+                          ),
+                        ),
+                        child: const SizedBox.square(dimension: 64),
+                      ),
+                    widget.preview,
+                  ],
+                ),
+              )
+            else
+              widget.preview,
+            const SizedBox(height: 5),
+            Text(
+              widget.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
