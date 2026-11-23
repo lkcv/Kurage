@@ -1,5 +1,6 @@
 // The purpose of this screen is to allow the user to search for a specific book/comic
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:ui' as ui;
 
@@ -16,7 +17,8 @@ import 'package:kurage/widgets/cover_opening_route.dart';
 import 'package:kurage/widgets/volume_actions.dart';
 import 'package:provider/provider.dart';
 import 'package:kurage/themes/theme_constants.dart';
-import 'package:kurage/screens/collection_screen.dart' show KuroStyleBookCard;
+import 'package:kurage/screens/collection_screen.dart'
+    show KuroStyleBookCard, KuroStyleBookCardState;
 import 'package:kurage/widgets/cover_grid_layout.dart';
 import 'package:kurage/widgets/grid_scroll_controller.dart';
 
@@ -81,6 +83,9 @@ class _SearchScreenState extends State<SearchScreen>
   // This notifier rebuilds only the search field, not the results grid.
   final _enterVisibleQuery = ValueNotifier<String?>(null);
   final _resultsScrollController = createGridScrollController();
+  final _gridFocusNode = FocusNode();
+  final _gridSelection = ValueNotifier<int?>(null);
+  final Map<String, KuroStyleBookCardState> _resultCards = {};
   bool _inForeground = true;
   late final CollectionCoverPrewarmer _coverPrewarmer =
       CollectionCoverPrewarmer(
@@ -165,6 +170,8 @@ class _SearchScreenState extends State<SearchScreen>
     _resultsScrollController.removeListener(_onResultsScrolled);
     _enterVisibleQuery.dispose();
     _searchFocusNode.dispose();
+    _gridFocusNode.dispose();
+    _gridSelection.dispose();
     _searchController.dispose();
     _resultsScrollController.dispose();
     super.dispose();
@@ -240,6 +247,7 @@ class _SearchScreenState extends State<SearchScreen>
   // List<Map<String, dynamic>> searchResults = [];
 
   void _onQueryChanged(String query) {
+    _gridSelection.value = null;
     // A real edit takes priority over any pending Enter restoration.
     if (_enterVisibleQuery.value != null) _enterVisibleQuery.value = null;
     if (_resultsScrollController.hasClients) {
@@ -268,6 +276,10 @@ class _SearchScreenState extends State<SearchScreen>
   // selection and empty composing region, prevents the follow-on jank that
   // occurred when restoring the original TextEditingValue verbatim.
   Future<void> _dismissKeyboardOnEnter() async {
+    if (Platform.isLinux) {
+      _gridFocusNode.requestFocus();
+      return;
+    }
     final query = _searchController.text;
     if (query.isEmpty) {
       _searchFocusNode.unfocus();
@@ -456,27 +468,39 @@ class _SearchScreenState extends State<SearchScreen>
                   itemCount: searchResults.length,
                   itemBuilder: (context, i) {
                     final entry = searchResults[i];
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: KuroStyleBookCard(
-                            entry: entry,
-                            onEntryTapped: (coverRect) =>
-                                _openResult(entry, coverRect),
-                            onEntryLongPressed: () => _openVolumeActions(entry),
+                    return GridSelectionIndicator(
+                      selection: _gridSelection,
+                      index: i,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: KuroStyleBookCard(
+                              entry: entry,
+                              onMounted: (state) =>
+                                  _resultCards[entry.id] = state,
+                              onUnmounted: (state) {
+                                if (identical(_resultCards[entry.id], state)) {
+                                  _resultCards.remove(entry.id);
+                                }
+                              },
+                              onEntryTapped: (coverRect) =>
+                                  _openResult(entry, coverRect),
+                              onEntryLongPressed: () =>
+                                  _openVolumeActions(entry),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          entry.title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(fontWeight: FontWeight.w500),
-                        ),
-                      ],
+                          const SizedBox(height: 4),
+                          Text(
+                            entry.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),
@@ -485,6 +509,20 @@ class _SearchScreenState extends State<SearchScreen>
     ); // PopScope
     return GridKeyboardScroll(
       controller: _resultsScrollController,
+      focusNode: _gridFocusNode,
+      selection: _gridSelection,
+      itemCount: searchResults.length,
+      columns: grid.columns,
+      rowExtent: grid.tileHeight + 20 + CoverGridLayout.spacing,
+      contentStart: MediaQuery.paddingOf(context).top + 48 + 8,
+      topOcclusion: MediaQuery.paddingOf(context).top + 48,
+      bottomOcclusion: 70,
+      onActivate: (index) {
+        final entry = searchResults[index];
+        final rect = _resultCards[entry.id]?.coverRect ?? Rect.zero;
+        unawaited(_openResult(entry, rect));
+      },
+      onExitSelection: () => _searchFocusNode.requestFocus(),
       child: screen,
     );
   }
@@ -492,15 +530,24 @@ class _SearchScreenState extends State<SearchScreen>
   void getSearchResults(String searchQuery) {
     final query = searchQuery.trim().toLowerCase();
     if (query.isEmpty || !_catalogReady) {
+      _gridSelection.value = null;
       _coverPrewarmer.setCovers(const []);
       setState(() => searchResults = []);
       return;
     }
 
+    final selected = _gridSelection.value;
+    final selectedId = selected != null && selected < searchResults.length
+        ? searchResults[selected].id
+        : null;
     final matches = _catalog
         .where((entry) => entry.title.toLowerCase().contains(query))
         .toList();
     matches.sort((a, b) => _naturalTitleCompare(a.title, b.title));
+    if (selectedId != null) {
+      final index = matches.indexWhere((entry) => entry.id == selectedId);
+      _gridSelection.value = index < 0 ? null : index;
+    }
     _coverPrewarmer.setCovers([for (final entry in matches) entry.imagePath]);
     setState(() => searchResults = matches);
   }

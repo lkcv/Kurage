@@ -22,6 +22,7 @@ class GridKeyboardScroll extends StatefulWidget {
     required this.controller,
     required this.child,
     this.autofocus = false,
+    this.focusNode,
     this.selection,
     this.itemCount = 0,
     this.columns = 1,
@@ -30,11 +31,13 @@ class GridKeyboardScroll extends StatefulWidget {
     this.topOcclusion = 0,
     this.bottomOcclusion = 0,
     this.onActivate,
+    this.onExitSelection,
   });
 
   final ScrollController controller;
   final Widget child;
   final bool autofocus;
+  final FocusNode? focusNode;
   final ValueNotifier<int?>? selection;
   final int itemCount;
   final int columns;
@@ -43,6 +46,7 @@ class GridKeyboardScroll extends StatefulWidget {
   final double topOcclusion;
   final double bottomOcclusion;
   final ValueChanged<int>? onActivate;
+  final VoidCallback? onExitSelection;
 
   @override
   State<GridKeyboardScroll> createState() => _GridKeyboardScrollState();
@@ -176,6 +180,7 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (!node.hasPrimaryFocus) return KeyEventResult.ignored;
     final direction = switch (event.logicalKey) {
       LogicalKeyboardKey.arrowLeft => _GridDirection.left,
       LogicalKeyboardKey.arrowRight => _GridDirection.right,
@@ -217,6 +222,7 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
       if (event.logicalKey == LogicalKeyboardKey.escape) {
         _stop();
         widget.selection!.value = null;
+        widget.onExitSelection?.call();
         return KeyEventResult.handled;
       }
     }
@@ -227,9 +233,10 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   Widget build(BuildContext context) {
     if (!Platform.isLinux) return widget.child;
     return Focus(
+      focusNode: widget.focusNode,
       autofocus: widget.autofocus,
-      canRequestFocus: widget.autofocus,
-      skipTraversal: !widget.autofocus,
+      canRequestFocus: widget.autofocus || widget.focusNode != null,
+      skipTraversal: !widget.autofocus && widget.focusNode == null,
       onKeyEvent: _onKeyEvent,
       onFocusChange: (focused) {
         if (!focused) _stop();
