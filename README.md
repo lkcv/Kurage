@@ -39,7 +39,7 @@ Linux requires [`pass`](https://www.passwordstore.org/) for encrypted credential
 pass init YOUR_GPG_KEY_ID
 ```
 
-Press **F1** to view the keyboard and mouse shortcuts.
+Press **F1** for keyboard and mouse shortcuts, or **Share** (DualShock 4) / **Create** (DualSense) for gamepad shortcuts. With a controller connected, you can switch between both views in the help menu.
 
 The Linux build uses [a fork of Sony's Flutter Embedded Linux](https://github.com/lkcv/flutter-embedded-linux) for native Wayland support and up to 120 FPS on compatible displays.
 

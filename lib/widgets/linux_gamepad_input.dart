@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:kurage/providers/app_settings_store.dart';
 
@@ -17,6 +18,17 @@ class LinuxGamepadInput {
       final separator = message.lastIndexOf(':');
       if (separator < 0) return '';
       var action = message.substring(0, separator);
+      if (action.startsWith('controller_')) {
+        _lastUsed = action.substring('controller_'.length);
+        _updateHelpLabel();
+        return '';
+      }
+      if (action.startsWith('controllers_')) {
+        _connected = action.substring('controllers_'.length);
+        hasController.value = _connected != 'none';
+        _updateHelpLabel();
+        return '';
+      }
       if (AppSettingsStore.current.swapGamepadConfirmBack) {
         action = switch (action) {
           'confirm' => 'back',
@@ -35,6 +47,24 @@ class LinuxGamepadInput {
 
   static final instance = LinuxGamepadInput._();
   final List<GamepadListener> _listeners = [];
+  final ValueNotifier<String> helpButtonLabel = ValueNotifier('Share / Create');
+  final ValueNotifier<bool> hasController = ValueNotifier(false);
+  String? _lastUsed;
+  String _connected = 'none';
+
+  void _updateHelpLabel() {
+    final model = switch (_connected) {
+      'ds4' => 'ds4',
+      'dualsense' => 'dualsense',
+      'both' => _lastUsed,
+      _ => null,
+    };
+    helpButtonLabel.value = switch (model) {
+      'ds4' => 'Share',
+      'dualsense' => 'Create',
+      _ => 'Share / Create',
+    };
+  }
 
   void addListener(GamepadListener listener) => _listeners.add(listener);
   void removeListener(GamepadListener listener) => _listeners.remove(listener);

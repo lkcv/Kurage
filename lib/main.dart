@@ -185,7 +185,7 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
       return true;
     }
     if (action == 'help') {
-      _toggleShortcuts();
+      _toggleShortcuts(gamepad: true);
       return true;
     }
     return false;
@@ -198,7 +198,7 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
     return true;
   }
 
-  void _toggleShortcuts() {
+  void _toggleShortcuts({bool gamepad = false}) {
     final navigator = _navigatorKey.currentState;
     final context = _navigatorKey.currentContext;
     if (navigator == null || context == null) return;
@@ -212,7 +212,7 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
     final route = DialogRoute<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.18),
-      builder: (_) => const DesktopShortcutsOverlay(),
+      builder: (_) => DesktopShortcutsOverlay(initialGamepad: gamepad),
     );
     _shortcutsRoute = route;
     LinuxGamepadInput.instance.addListener(_onShortcutDialogGamepad);
