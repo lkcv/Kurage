@@ -37,12 +37,18 @@ const AppSettingsSchema = CollectionSchema(
       name: r'readingDirection',
       type: IsarType.string,
     ),
-    r'themeSelection': PropertySchema(
+    r'swapGamepadConfirmBack': PropertySchema(
       id: 4,
+      name: r'swapGamepadConfirmBack',
+      type: IsarType.bool,
+    ),
+    r'themeSelection': PropertySchema(
+      id: 5,
       name: r'themeSelection',
       type: IsarType.string,
     ),
   },
+
   estimateSize: _appSettingsEstimateSize,
   serialize: _appSettingsSerialize,
   deserialize: _appSettingsDeserialize,
@@ -51,6 +57,7 @@ const AppSettingsSchema = CollectionSchema(
   indexes: {},
   links: {},
   embeddedSchemas: {},
+
   getId: _appSettingsGetId,
   getLinks: _appSettingsGetLinks,
   attach: _appSettingsAttach,
@@ -85,7 +92,8 @@ void _appSettingsSerialize(
   writer.writeStringList(offsets[1], object.libraryNames);
   writer.writeLong(offsets[2], object.readerCacheLimitMb);
   writer.writeString(offsets[3], object.readingDirection);
-  writer.writeString(offsets[4], object.themeSelection);
+  writer.writeBool(offsets[4], object.swapGamepadConfirmBack);
+  writer.writeString(offsets[5], object.themeSelection);
 }
 
 AppSettings _appSettingsDeserialize(
@@ -99,7 +107,8 @@ AppSettings _appSettingsDeserialize(
     libraryNames: reader.readStringList(offsets[1]) ?? const [],
     readerCacheLimitMb: reader.readLongOrNull(offsets[2]),
     readingDirection: reader.readStringOrNull(offsets[3]) ?? 'LTR',
-    themeSelection: reader.readStringOrNull(offsets[4]) ?? 'system',
+    swapGamepadConfirmBack: reader.readBoolOrNull(offsets[4]) ?? false,
+    themeSelection: reader.readStringOrNull(offsets[5]) ?? 'system',
   );
   object.isarId = id;
   return object;
@@ -121,6 +130,8 @@ P _appSettingsDeserializeProp<P>(
     case 3:
       return (reader.readStringOrNull(offset) ?? 'LTR') as P;
     case 4:
+      return (reader.readBoolOrNull(offset) ?? false) as P;
+    case 5:
       return (reader.readStringOrNull(offset) ?? 'system') as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -770,6 +781,18 @@ extension AppSettingsQueryFilter
   }
 
   QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
+  swapGamepadConfirmBackEqualTo(bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'swapGamepadConfirmBack',
+          value: value,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<AppSettings, AppSettings, QAfterFilterCondition>
   themeSelectionEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -959,6 +982,20 @@ extension AppSettingsQuerySortBy
     });
   }
 
+  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
+  sortBySwapGamepadConfirmBack() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'swapGamepadConfirmBack', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
+  sortBySwapGamepadConfirmBackDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'swapGamepadConfirmBack', Sort.desc);
+    });
+  }
+
   QueryBuilder<AppSettings, AppSettings, QAfterSortBy> sortByThemeSelection() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'themeSelection', Sort.asc);
@@ -1027,6 +1064,20 @@ extension AppSettingsQuerySortThenBy
     });
   }
 
+  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
+  thenBySwapGamepadConfirmBack() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'swapGamepadConfirmBack', Sort.asc);
+    });
+  }
+
+  QueryBuilder<AppSettings, AppSettings, QAfterSortBy>
+  thenBySwapGamepadConfirmBackDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'swapGamepadConfirmBack', Sort.desc);
+    });
+  }
+
   QueryBuilder<AppSettings, AppSettings, QAfterSortBy> thenByThemeSelection() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'themeSelection', Sort.asc);
@@ -1070,6 +1121,13 @@ extension AppSettingsQueryWhereDistinct
         r'readingDirection',
         caseSensitive: caseSensitive,
       );
+    });
+  }
+
+  QueryBuilder<AppSettings, AppSettings, QDistinct>
+  distinctBySwapGamepadConfirmBack() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'swapGamepadConfirmBack');
     });
   }
 
@@ -1117,6 +1175,13 @@ extension AppSettingsQueryProperty
   readingDirectionProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'readingDirection');
+    });
+  }
+
+  QueryBuilder<AppSettings, bool, QQueryOperations>
+  swapGamepadConfirmBackProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'swapGamepadConfirmBack');
     });
   }
 

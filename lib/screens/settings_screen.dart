@@ -349,6 +349,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               setState(() {});
             },
           ),
+          if (Platform.isLinux) ...[
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            Theme(
+              data: Theme.of(context).copyWith(
+                splashFactory: NoSplash.splashFactory,
+                highlightColor: Colors.transparent,
+                hoverColor: Colors.transparent,
+              ),
+              child: CheckboxListTile(
+                secondary: const Icon(Icons.sports_esports_outlined),
+                title: const Text('Swap confirm / back'),
+                subtitle: const Text('Right face button confirms when enabled'),
+                overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+                value: AppSettingsStore.current.swapGamepadConfirmBack,
+                onChanged: (swapped) async {
+                  if (swapped == null) return;
+                  final pending = AppSettingsStore.update(
+                    (settings) => settings.swapGamepadConfirmBack = swapped,
+                  );
+                  setState(() {});
+                  await pending;
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:kurage/providers/app_settings_store.dart';
 
 typedef GamepadListener = bool Function(String action, bool pressed);
 
@@ -15,7 +16,14 @@ class LinuxGamepadInput {
       if (message == null) return '';
       final separator = message.lastIndexOf(':');
       if (separator < 0) return '';
-      final action = message.substring(0, separator);
+      var action = message.substring(0, separator);
+      if (AppSettingsStore.current.swapGamepadConfirmBack) {
+        action = switch (action) {
+          'confirm' => 'back',
+          'back' => 'confirm',
+          _ => action,
+        };
+      }
       final pressed = message.substring(separator + 1) == 'down';
       // Newest (usually most deeply nested) listeners handle events first.
       for (final listener in List<GamepadListener>.of(_listeners).reversed) {
