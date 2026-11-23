@@ -179,7 +179,10 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return SearchScreen(onBack: _goBackFromSearch);
       case 2:
-        return SettingsScreen(cacheUsage: _settingsUsage!);
+        return SettingsScreen(
+          cacheUsage: _settingsUsage!,
+          onBack: () => _onTabChange(0),
+        );
       default:
         return const SizedBox.shrink();
     }

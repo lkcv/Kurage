@@ -4,6 +4,7 @@ import 'package:kurage/screens/downloaded_volumes_screen.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
 import 'package:kurage/cache/cache_usage_snapshot.dart';
 import 'package:kurage/cache/cover_cache.dart';
+import 'package:kurage/widgets/linux_settings_navigation.dart';
 import 'package:kurage/variables.dart';
 
 class ReaderCacheSettings extends StatefulWidget {
@@ -51,19 +52,21 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
   }) async {
     return await showDialog<bool>(
           context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: Text(title),
-            content: Text(description),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Clear'),
-              ),
-            ],
+          builder: (dialogContext) => LinuxSettingsNavigation(
+            child: AlertDialog(
+              title: Text(title),
+              content: Text(description),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Clear'),
+                ),
+              ],
+            ),
           ),
         ) ??
         false;
@@ -121,7 +124,9 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
     if (_busy) return;
     final selectedLimit = await showDialog<int>(
       context: context,
-      builder: (context) => _CacheLimitDialog(initialLimitMb: _limitMb),
+      builder: (context) => LinuxSettingsNavigation(
+        child: _CacheLimitDialog(initialLimitMb: _limitMb),
+      ),
     );
     if (!mounted || selectedLimit == null || selectedLimit == _limitMb) return;
     setState(() => _busy = true);

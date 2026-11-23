@@ -8,6 +8,7 @@ import 'package:kurage/providers/delete_comic.dart';
 import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/providers/supported_formats.dart';
 import 'package:kurage/variables.dart';
+import 'package:kurage/widgets/linux_settings_navigation.dart';
 
 String _downloadedFailureMessage(Object? error, String fallback) =>
     switch (classifyError(error).kind) {
@@ -87,22 +88,24 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
     final confirmed =
         await showDialog<bool>(
           context: context,
-          builder: (dialogContext) => AlertDialog(
-            title: const Text('Remove downloaded volume?'),
-            content: Text(
-              'Remove the local copy of "${entry.title}"? '
-              'Reading progress and cached pages will be kept.',
+          builder: (dialogContext) => LinuxSettingsNavigation(
+            child: AlertDialog(
+              title: const Text('Remove downloaded volume?'),
+              content: Text(
+                'Remove the local copy of "${entry.title}"? '
+                'Reading progress and cached pages will be kept.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Remove'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, false),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext, true),
-                child: const Text('Remove'),
-              ),
-            ],
           ),
         ) ??
         false;
@@ -129,7 +132,7 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final scaffold = Scaffold(
       appBar: AppBar(title: const Text('Downloaded volumes')),
       body: FutureBuilder<List<({Entry entry, String series, int? bytes})>>(
         future: _volumes,
@@ -187,6 +190,10 @@ class _DownloadedVolumesScreenState extends State<DownloadedVolumesScreen> {
           );
         },
       ),
+    );
+    return LinuxSettingsNavigation(
+      onBack: () => Navigator.of(context).maybePop(),
+      child: scaffold,
     );
   }
 }

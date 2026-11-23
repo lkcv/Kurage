@@ -19,15 +19,17 @@ import 'package:provider/provider.dart';
 import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/cache/cache_usage_snapshot.dart';
 import 'package:kurage/widgets/reader_cache_settings.dart';
+import 'package:kurage/widgets/linux_settings_navigation.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
 import 'package:kurage/variables.dart';
 import 'package:kurage/providers/jellyfin_api.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key, required this.cacheUsage});
+  const SettingsScreen({super.key, required this.cacheUsage, this.onBack});
 
   final CacheUsageSnapshot cacheUsage;
+  final VoidCallback? onBack;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -38,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String serverUrl = '';
 
   // Cached profile card data so the list does not jump on every visit
+  final GlobalKey _profileCardKey = GlobalKey();
   ImageProvider? _profilePic;
   bool _profileReady = false;
 
@@ -59,6 +62,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() {
       _profilePic = picture;
       _profileReady = true;
+    });
+  }
+
+  // The profile is not a focus target, but should be visible at the top.
+  void _showProfileOnFocus(bool focused) {
+    if (!focused || !Platform.isLinux) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profile = _profileCardKey.currentContext;
+      if (!mounted || profile == null) return;
+      Scrollable.ensureVisible(
+        profile,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+      );
     });
   }
 
@@ -117,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final headerForeground = FloatingSurfacePalette.foreground(
       headerBrightness,
     );
-    return Scaffold(
+    final scaffold = Scaffold(
       // Match the Library's compact, theme-aware translucent header.
       appBar: FloatingSurfaceHeader(
         topInset: MediaQuery.paddingOf(context).top,
@@ -140,7 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
       body: Container(
-        padding: const EdgeInsets.all(10),
+        // The HomeScreen bar overlays the bottom 70dp of the Linux body.
+        padding: EdgeInsets.fromLTRB(10, 10, 10, Platform.isLinux ? 80 : 10),
         child: ListView(
           children: [
             _buildProfileCard(context),
@@ -156,6 +174,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Theme(
                     data: Theme.of(context).copyWith(
+                      focusColor: Theme.of(
+                        context,
+                      ).colorScheme.primary.withValues(alpha: 0.15),
                       appBarTheme: Theme.of(context).appBarTheme.copyWith(
                         toolbarHeight: FloatingSurfaceHeader.toolbarHeight,
                         backgroundColor:
@@ -203,11 +224,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+    return LinuxSettingsNavigation(onBack: widget.onBack, child: scaffold);
   }
 
   Widget _buildProfileCard(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Card(
+      key: _profileCardKey,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         child: Row(
@@ -285,6 +308,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _choiceTile(
             icon: Icons.brightness_6_outlined,
             title: "Theme",
+            onFocusChange: _showProfileOnFocus,
             value: themeOptions[selectedTheme] ?? themeOptions['system']!,
             onTap: () async {
               final selected = await _showChoices(
@@ -353,6 +377,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 1, indent: 16, endIndent: 16),
             Theme(
               data: Theme.of(context).copyWith(
+                focusColor: Theme.of(
+                  context,
+                ).colorScheme.primary.withValues(alpha: 0.15),
                 splashFactory: NoSplash.splashFactory,
                 highlightColor: Colors.transparent,
                 hoverColor: Colors.transparent,
@@ -457,85 +484,88 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (sheetContext) => Consumer<ThemeChangeNotifier>(
-        builder: (context, notifier, _) => SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Accent color',
-                  style: Theme.of(sheetContext).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 12,
-                  runSpacing: 16,
-                  children: [
-                    for (final entry in AccentPalette.options)
-                      Semantics(
-                        button: true,
-                        selected: notifier.accentColor == entry.color,
-                        label: entry.name,
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          splashFactory: NoSplash.splashFactory,
-                          highlightColor: Colors.transparent,
-                          onTap: () {
-                            notifier.setAccentColor = entry.color;
-                          },
-                          child: SizedBox(
-                            width: 64,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                _accentPreviewCircle(
-                                  accent: entry.color,
-                                  selected: notifier.accentColor == entry.color,
-                                  showSelectionRing: true,
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  entry.name,
-                                  maxLines: 1,
-                                  style: Theme.of(
-                                    sheetContext,
-                                  ).textTheme.labelSmall,
-                                ),
-                              ],
+      builder: (sheetContext) => LinuxSettingsNavigation(
+        child: Consumer<ThemeChangeNotifier>(
+          builder: (context, notifier, _) => SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Accent color',
+                    style: Theme.of(sheetContext).textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 12,
+                    runSpacing: 16,
+                    children: [
+                      for (final entry in AccentPalette.options)
+                        Semantics(
+                          button: true,
+                          selected: notifier.accentColor == entry.color,
+                          label: entry.name,
+                          child: InkWell(
+                            customBorder: const CircleBorder(),
+                            splashFactory: NoSplash.splashFactory,
+                            highlightColor: Colors.transparent,
+                            onTap: () {
+                              notifier.setAccentColor = entry.color;
+                            },
+                            child: SizedBox(
+                              width: 64,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _accentPreviewCircle(
+                                    accent: entry.color,
+                                    selected:
+                                        notifier.accentColor == entry.color,
+                                    showSelectionRing: true,
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    entry.name,
+                                    maxLines: 1,
+                                    style: Theme.of(
+                                      sheetContext,
+                                    ).textTheme.labelSmall,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  TextButton.icon(
+                    // Suppress the tap flash without hiding keyboard focus.
+                    style: ButtonStyle(
+                      splashFactory: NoSplash.splashFactory,
+                      overlayColor: WidgetStateProperty.resolveWith<Color?>(
+                        (states) => states.contains(WidgetState.pressed)
+                            ? Colors.transparent
+                            : null,
                       ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                TextButton.icon(
-                  // Suppress the tap flash without hiding keyboard focus.
-                  style: ButtonStyle(
-                    splashFactory: NoSplash.splashFactory,
-                    overlayColor: WidgetStateProperty.resolveWith<Color?>(
-                      (states) => states.contains(WidgetState.pressed)
-                          ? Colors.transparent
-                          : null,
                     ),
+                    onPressed: () {
+                      notifier.setAccentColor = null;
+                    },
+                    icon: _accentPreviewCircle(
+                      accent: ThemeChangeNotifier.defaultAccent,
+                      isDefault: true,
+                      size: 18,
+                      selected: notifier.accentColor == null,
+                      showSelectionRing: true,
+                    ),
+                    label: const Text('Use default'),
                   ),
-                  onPressed: () {
-                    notifier.setAccentColor = null;
-                  },
-                  icon: _accentPreviewCircle(
-                    accent: ThemeChangeNotifier.defaultAccent,
-                    isDefault: true,
-                    size: 18,
-                    selected: notifier.accentColor == null,
-                    showSelectionRing: true,
-                  ),
-                  label: const Text('Use default'),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -548,8 +578,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String title,
     required String value,
     required VoidCallback onTap,
+    ValueChanged<bool>? onFocusChange,
   }) {
     return ListTile(
+      onFocusChange: onFocusChange,
       leading: Icon(icon),
       title: Text(title),
       trailing: Row(
@@ -582,29 +614,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: Text(
-                title,
-                style: Theme.of(sheetContext).textTheme.titleMedium,
+      builder: (sheetContext) => LinuxSettingsNavigation(
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Text(
+                  title,
+                  style: Theme.of(sheetContext).textTheme.titleMedium,
+                ),
               ),
-            ),
-            ...options.entries.map(
-              (option) => ListTile(
-                title: Text(option.value),
-                trailing: option.key == selected
-                    ? const Icon(Icons.check_rounded)
-                    : null,
-                onTap: () => Navigator.pop(sheetContext, option.key),
+              ...options.entries.map(
+                (option) => ListTile(
+                  title: Text(option.value),
+                  trailing: option.key == selected
+                      ? const Icon(Icons.check_rounded)
+                      : null,
+                  onTap: () => Navigator.pop(sheetContext, option.key),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-          ],
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
