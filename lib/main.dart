@@ -180,27 +180,26 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
       builder: (_) => const DesktopShortcutsOverlay(),
     );
     _shortcutsRoute = route;
-    unawaited(navigator.push(route).whenComplete(() {
-      if (mounted && identical(_shortcutsRoute, route)) _shortcutsRoute = null;
-    }));
+    unawaited(
+      navigator.push(route).whenComplete(() {
+        if (mounted && identical(_shortcutsRoute, route))
+          _shortcutsRoute = null;
+      }),
+    );
   }
 
   @override
   Widget build(BuildContext context) => CallbackShortcuts(
     bindings: {
-      const SingleActivator(
-        LogicalKeyboardKey.f1,
-        includeRepeats: false,
-      ): _toggleShortcuts,
+      const SingleActivator(LogicalKeyboardKey.f1, includeRepeats: false):
+          _toggleShortcuts,
       const SingleActivator(
         LogicalKeyboardKey.arrowLeft,
         alt: true,
         includeRepeats: false,
       ): _goBack,
-      const SingleActivator(
-        LogicalKeyboardKey.escape,
-        includeRepeats: false,
-      ): _goBack,
+      const SingleActivator(LogicalKeyboardKey.escape, includeRepeats: false):
+          _goBack,
     },
     child: Listener(
       behavior: HitTestBehavior.translucent,

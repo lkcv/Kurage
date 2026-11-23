@@ -150,7 +150,9 @@ class _SmoothWheelScrollPosition extends ScrollPositionWithSingleContext {
 
     // Add successive notches to the destination, not the intermediate offset.
     final from = _wheelTarget ?? pixels;
-    final target = (from + delta).clamp(minScrollExtent, maxScrollExtent).toDouble();
+    final target = (from + delta)
+        .clamp(minScrollExtent, maxScrollExtent)
+        .toDouble();
     if (target == from) return;
 
     _wheelTarget = target;
@@ -167,9 +169,11 @@ class _SmoothWheelScrollPosition extends ScrollPositionWithSingleContext {
       vsync: context.vsync,
     );
     beginActivity(activity);
-    unawaited(activity.done.then((_) {
-      if (sequence == _sequence) _wheelTarget = null;
-    }));
+    unawaited(
+      activity.done.then((_) {
+        if (sequence == _sequence) _wheelTarget = null;
+      }),
+    );
   }
 
   @override

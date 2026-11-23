@@ -451,8 +451,7 @@ class _SearchScreenState extends State<SearchScreen>
                     crossAxisSpacing: CoverGridLayout.spacing,
                     mainAxisSpacing: CoverGridLayout.spacing,
                     // Reserve room for the title below the cover.
-                    childAspectRatio: grid.tileWidth /
-                        (grid.tileHeight + 20),
+                    childAspectRatio: grid.tileWidth / (grid.tileHeight + 20),
                   ),
                   itemCount: searchResults.length,
                   itemBuilder: (context, i) {

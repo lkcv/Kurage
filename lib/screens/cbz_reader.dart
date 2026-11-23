@@ -1947,7 +1947,9 @@ class _CbzReaderState extends State<CbzReader>
                   autofocus: Platform.isLinux,
                   min: 0,
                   max: lastPage.toDouble(),
-                  divisions: Platform.isLinux && pageNums > 1 ? pageNums - 1 : null,
+                  divisions: Platform.isLinux && pageNums > 1
+                      ? pageNums - 1
+                      : null,
                   onChanged: (v) => setState(() => _currentPage = v.round()),
                   onChangeEnd: (v) => _pageController?.jumpToPage(v.round()),
                 ),
@@ -2033,36 +2035,41 @@ class _CbzReaderState extends State<CbzReader>
             }
           },
           child: Stack(
-          children: [
-            Positioned.fill(
-              child: Listener(
-                behavior: HitTestBehavior.opaque,
-                onPointerSignal: Platform.isLinux && !isVertical
-                    ? _onWheelScroll
-                    : null,
-                onPointerDown: _readerPointerDown,
-                onPointerMove: _readerPointerMove,
-                onPointerUp: _readerPointerEnd,
-                onPointerCancel: (event) =>
-                    _readerPointerEnd(event, cancelled: true),
-                child: GestureDetector(
+            children: [
+              Positioned.fill(
+                child: Listener(
                   behavior: HitTestBehavior.opaque,
-                  onTapUp: isVertical ? (_) => _toggleOverlay() : _handleTap,
-                  child: isVertical ? _buildVertical() : _buildPager(isRtl),
+                  onPointerSignal: Platform.isLinux && !isVertical
+                      ? _onWheelScroll
+                      : null,
+                  onPointerDown: _readerPointerDown,
+                  onPointerMove: _readerPointerMove,
+                  onPointerUp: _readerPointerEnd,
+                  onPointerCancel: (event) =>
+                      _readerPointerEnd(event, cancelled: true),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapUp: isVertical ? (_) => _toggleOverlay() : _handleTap,
+                    child: isVertical ? _buildVertical() : _buildPager(isRtl),
+                  ),
                 ),
               ),
-            ),
-            Positioned(top: 0, left: 0, right: 0, child: _fade(_buildTopBar())),
-            if (!isVertical)
               Positioned(
-                bottom: 0,
+                top: 0,
                 left: 0,
                 right: 0,
-                child: _fade(_buildBottomBar(scheme, isRtl)),
+                child: _fade(_buildTopBar()),
               ),
-            if (_volumeSwipeDelta != 0 || _volumeSwipeMessage != null)
-              Positioned.fill(child: _volumeSwipePill()),
-          ],
+              if (!isVertical)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _fade(_buildBottomBar(scheme, isRtl)),
+                ),
+              if (_volumeSwipeDelta != 0 || _volumeSwipeMessage != null)
+                Positioned.fill(child: _volumeSwipePill()),
+            ],
           ),
         ),
       ),
