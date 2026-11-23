@@ -2,58 +2,35 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kurage/screens/downloaded_volumes_screen.dart';
 import 'package:kurage/cache/reader_page_cache.dart';
+import 'package:kurage/cache/cache_usage_snapshot.dart';
 import 'package:kurage/cache/cover_cache.dart';
-import 'package:kurage/providers/error_classification.dart';
 import 'package:kurage/variables.dart';
 
-String _cacheFailureMessage(Object error, String fallback) =>
-    switch (classifyError(error).kind) {
-      AppErrorKind.storage => '$fallback (storage access failed)',
-      _ => fallback,
-    };
-
 class ReaderCacheSettings extends StatefulWidget {
-  const ReaderCacheSettings({super.key});
+  const ReaderCacheSettings({super.key, required this.initialUsage});
+
+  final CacheUsageSnapshot initialUsage;
 
   @override
   State<ReaderCacheSettings> createState() => _ReaderCacheSettingsState();
 }
 
 class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
-  int _usageBytes = 0;
-  int _coverUsageBytes = 0;
-  int _limitMb = ReaderPageCache.defaultLimitMb;
-  bool _loading = true;
+  late int _usageBytes = widget.initialUsage.usageBytes;
+  late int _coverUsageBytes = widget.initialUsage.coverUsageBytes;
+  late int _limitMb = widget.initialUsage.limitMb;
   bool _busy = false;
-  String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
-  }
+  late String? _error = widget.initialUsage.error;
 
   Future<void> _refresh() async {
-    try {
-      final limit = await ReaderPageCache.getLimitMb();
-      final usage = await ReaderPageCache.getUsageBytes();
-      final coverUsage = await CoverCacheManager.getUsageBytes();
-      if (!mounted) return;
-      setState(() {
-        _limitMb = limit;
-        _usageBytes = usage;
-        _coverUsageBytes = coverUsage;
-        _loading = false;
-        _error = null;
-      });
-    } catch (error) {
-      logger.w('ReaderCacheSettings: could not read cache usage: $error');
-      if (!mounted) return;
-      setState(() {
-        _loading = false;
-        _error = _cacheFailureMessage(error, 'Could not read cache usage');
-      });
-    }
+    final snapshot = await CacheUsageSnapshot.load();
+    if (!mounted) return;
+    setState(() {
+      _limitMb = snapshot.limitMb;
+      _usageBytes = snapshot.usageBytes;
+      _coverUsageBytes = snapshot.coverUsageBytes;
+      _error = snapshot.error;
+    });
   }
 
   String _displayMb(int bytes) {
@@ -110,7 +87,7 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       _notify('Reader page cache cleared');
     } catch (error) {
       logger.w('ReaderCacheSettings: could not clear reader cache: $error');
-      _notify(_cacheFailureMessage(error, 'Could not clear reader cache'));
+      _notify(cacheFailureMessage(error, 'Could not clear reader cache'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -134,7 +111,7 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
       _notify('Cover cache cleared');
     } catch (error) {
       logger.w('ReaderCacheSettings: could not clear cover cache: $error');
-      _notify(_cacheFailureMessage(error, 'Could not clear cover cache'));
+      _notify(cacheFailureMessage(error, 'Could not clear cover cache'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -157,7 +134,7 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
         'ReaderCacheSettings: could not update reader cache limit: $error',
       );
       _notify(
-        _cacheFailureMessage(error, 'Could not update reader cache limit'),
+        cacheFailureMessage(error, 'Could not update reader cache limit'),
       );
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -226,41 +203,35 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
-                      if (_loading)
-                        LinearProgressIndicator(backgroundColor: trackColor)
-                      else
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Wrap(
-                              spacing: 6,
-                              runSpacing: 6,
-                              crossAxisAlignment: WrapCrossAlignment.center,
-                              children: [
-                                Text('${_displayMb(_usageBytes)} MB used of'),
-                                OutlinedButton.icon(
-                                  onPressed: _busy ? null : _editLimit,
-                                  icon: const Icon(
-                                    Icons.edit_outlined,
-                                    size: 16,
-                                  ),
-                                  label: Text('$_limitMb MB'),
-                                  style: OutlinedButton.styleFrom(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                    ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            children: [
+                              Text('${_displayMb(_usageBytes)} MB used of'),
+                              OutlinedButton.icon(
+                                onPressed: _busy ? null : _editLimit,
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                label: Text('$_limitMb MB'),
+                                style: OutlinedButton.styleFrom(
+                                  visualDensity: VisualDensity.compact,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            LinearProgressIndicator(
-                              value: usageFraction,
-                              backgroundColor: trackColor,
-                            ),
-                          ],
-                        ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          LinearProgressIndicator(
+                            value: usageFraction,
+                            backgroundColor: trackColor,
+                          ),
+                        ],
+                      ),
                       if (_error != null)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),
@@ -310,15 +281,12 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
                       ),
                       Row(
                         children: [
-                          if (!_loading)
-                            Expanded(
-                              child: Text(
-                                '${_displayMb(_coverUsageBytes)} MB used',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            )
-                          else
-                            const Spacer(),
+                          Expanded(
+                            child: Text(
+                              '${_displayMb(_coverUsageBytes)} MB used',
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ),
                           TextButton.icon(
                             onPressed: _busy ? null : _clearCovers,
                             icon: const Icon(Icons.delete_outline),

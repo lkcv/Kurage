@@ -18,6 +18,7 @@ import 'package:provider/provider.dart';
 // Screens imports
 import 'package:kurage/screens/library_screen.dart';
 import 'package:kurage/screens/settings_screen.dart';
+import 'package:kurage/cache/cache_usage_snapshot.dart';
 import 'package:kurage/screens/search_screen.dart';
 import 'package:kurage/screens/login_screen.dart';
 import 'package:kurage/variables.dart';
@@ -41,8 +42,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    if (Platform.isLinux)
+    if (Platform.isLinux) {
       HardwareKeyboard.instance.removeHandler(_onDesktopKey);
+    }
     super.dispose();
   }
 
@@ -65,17 +67,26 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   // Last non-search tab so Search can return to wherever the user was
   int _previousIndex = 0;
+  int _tabRequest = 0;
+  CacheUsageSnapshot? _settingsUsage;
 
   static const int _searchIndex = 1;
   static const Duration _tabAnimationDuration = Duration(milliseconds: 200);
 
   void _goBackFromSearch() {
+    _tabRequest++;
     setState(() {
       _selectedIndex = _previousIndex;
     });
   }
 
-  void _onTabChange(int index) {
+  Future<void> _onTabChange(int index) async {
+    final request = ++_tabRequest;
+    if (index == 2 && _selectedIndex != 2) {
+      final usage = await CacheUsageSnapshot.load();
+      if (!mounted || request != _tabRequest) return;
+      _settingsUsage = usage;
+    }
     setState(() {
       // Remember where we were when entering Search
       if (index == _searchIndex && _selectedIndex != _searchIndex) {
@@ -137,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case 1:
         return SearchScreen(onBack: _goBackFromSearch);
       case 2:
-        return const SettingsScreen();
+        return SettingsScreen(cacheUsage: _settingsUsage!);
       default:
         return const SizedBox.shrink();
     }

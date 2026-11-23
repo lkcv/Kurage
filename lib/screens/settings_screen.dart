@@ -17,6 +17,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart' as p_info;
 import 'package:provider/provider.dart';
 import 'package:kurage/cache/cover_cache.dart';
+import 'package:kurage/cache/cache_usage_snapshot.dart';
 import 'package:kurage/widgets/reader_cache_settings.dart';
 import 'package:kurage/themes/theme_constants.dart';
 import 'package:kurage/widgets/floating_surface_header.dart';
@@ -24,7 +25,9 @@ import 'package:kurage/variables.dart';
 import 'package:kurage/providers/jellyfin_api.dart';
 
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, required this.cacheUsage});
+
+  final CacheUsageSnapshot cacheUsage;
 
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
@@ -146,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             // Storage & cache. Each row opens a bottom-sheet selector.
             _buildPreferencesCard(context),
             const SizedBox(height: 8),
-            const ReaderCacheSettings(),
+            ReaderCacheSettings(initialUsage: widget.cacheUsage),
             const SizedBox(height: 8),
             Card(
               child: Column(
