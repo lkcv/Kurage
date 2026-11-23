@@ -179,15 +179,22 @@ class _LinuxShortcutBindingsState extends State<_LinuxShortcutBindings> {
 
   // Fallback after the active reader/grid has had a chance to handle Back.
   bool _onGamepad(String action, bool pressed) {
-    if (!pressed || action != 'back') return false;
-    _goBack();
-    return true;
+    if (!pressed) return false;
+    if (action == 'back') {
+      _goBack();
+      return true;
+    }
+    if (action == 'help') {
+      _toggleShortcuts();
+      return true;
+    }
+    return false;
   }
 
   // The F1 dialog sits above nested reader routes; don't pass input behind it.
   bool _onShortcutDialogGamepad(String action, bool pressed) {
     if (_shortcutsRoute?.isCurrent != true) return false;
-    if (pressed && action == 'back') _goBack();
+    if (pressed && (action == 'back' || action == 'help')) _goBack();
     return true;
   }
 

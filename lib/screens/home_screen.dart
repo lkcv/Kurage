@@ -25,6 +25,7 @@ import 'package:kurage/variables.dart';
 import 'package:kurage/providers/connection_manager.dart';
 import 'package:kurage/providers/theme_provider.dart';
 import 'package:kurage/themes/accent_palette.dart';
+import 'package:kurage/widgets/linux_gamepad_input.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,13 +38,17 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    if (Platform.isLinux) HardwareKeyboard.instance.addHandler(_onDesktopKey);
+    if (Platform.isLinux) {
+      HardwareKeyboard.instance.addHandler(_onDesktopKey);
+      LinuxGamepadInput.instance.addListener(_onGamepad);
+    }
   }
 
   @override
   void dispose() {
     if (Platform.isLinux) {
       HardwareKeyboard.instance.removeHandler(_onDesktopKey);
+      LinuxGamepadInput.instance.removeListener(_onGamepad);
     }
     super.dispose();
   }
@@ -94,6 +99,32 @@ class _HomeScreenState extends State<HomeScreen> {
       }
       _selectedIndex = index;
     });
+  }
+
+  bool _onGamepad(String action, bool pressed) {
+    if (!mounted || !pressed || ModalRoute.of(context)?.isCurrent != true) {
+      return false;
+    }
+    switch (action) {
+      case 'west':
+        _onTabChange(0);
+        return true;
+      case 'search':
+        _onTabChange(_searchIndex);
+        return true;
+      case 'menu':
+        _onTabChange(2);
+        return true;
+      case 'l1':
+        if (_selectedIndex != 0) return false;
+        _libraryKey.currentState?.toggleDownloadedFilter();
+        return true;
+      case 'r1':
+        if (_selectedIndex != 0) return false;
+        _libraryKey.currentState?.toggleReadingFilter();
+        return true;
+    }
+    return false;
   }
 
   // Route-scoped shortcuts don't alter focus or intercept text entry.
