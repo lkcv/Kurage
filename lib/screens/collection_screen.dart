@@ -66,6 +66,7 @@ class _CollectionScreenState extends State<CollectionScreen>
     null,
   );
   final ScrollController _gridController = createGridScrollController();
+  final ValueNotifier<int?> _gridSelection = ValueNotifier<int?>(null);
   // Only mounted cards are tracked; the sliver still disposes offscreen cards.
   final Map<String, KuroStyleBookCardState> _mountedCards = {};
   // Reuse one database query across animation and layout rebuilds. Creating a
@@ -161,6 +162,7 @@ class _CollectionScreenState extends State<CollectionScreen>
               displayed.any((entry) => !byId.containsKey(entry.id)))) {
         // Progress changed membership: rebuild the filtered grid rather than
         // leaving a FINISHED/UNREAD volume visible under Continue Reading.
+        _reconcileGridSelection(displayed, refreshed);
         setState(() => _entriesFuture = Future.value(refreshed));
         if (refreshed.isEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -264,9 +266,23 @@ class _CollectionScreenState extends State<CollectionScreen>
     },
   );
 
+  void _reconcileGridSelection(List<Entry>? previous, List<Entry> entries) {
+    final selected = _gridSelection.value;
+    if (selected == null) return;
+    final id = previous != null && selected >= 0 && selected < previous.length
+        ? previous[selected].id
+        : null;
+    final index = entries.indexWhere((entry) => entry.id == id);
+    _gridSelection.value = index < 0 ? null : index;
+  }
+
   void _refreshEntries() {
     if (!mounted) return;
-    final refreshed = getEntries();
+    final previous = _latestEntries;
+    final refreshed = getEntries().then((entries) {
+      if (mounted) _reconcileGridSelection(previous, entries);
+      return entries;
+    });
     setState(() => _entriesFuture = refreshed);
     if (downloadedOnly || readingOnly) {
       // Removing the last matching volume leaves this filtered series empty.
@@ -362,6 +378,7 @@ class _CollectionScreenState extends State<CollectionScreen>
     _pagePrefetcher.dispose();
     _gridController.removeListener(_onGridScrolled);
     _gridController.dispose();
+    _gridSelection.dispose();
     super.dispose();
   }
 
@@ -597,152 +614,174 @@ class _CollectionScreenState extends State<CollectionScreen>
                           itemCount: snapshot.data.length,
                           itemBuilder: (BuildContext context, int index) {
                             Entry entry = snapshot.data[index];
-                            return KuroStyleBookCard(
-                              entry: entry,
-                              progressRevision: _cardProgressRevision,
-                              onMounted: (state) =>
-                                  _mountedCards[entry.id] = state,
-                              onUnmounted: (state) {
-                                if (identical(_mountedCards[entry.id], state)) {
-                                  _mountedCards.remove(entry.id);
-                                }
-                              },
-                              onEntryTapped: (coverRect) async {
-                                if (entry.type == EntryType.folder) {
-                                  var folder = isar!.folders
-                                      .where()
-                                      .filter()
-                                      .idEqualTo(entry.id)
-                                      .findFirstSync();
-                                  await _pushWithPausedCovers(
-                                    MaterialPageRoute(
-                                      builder: (context) => CollectionScreen(
-                                        folderId: folder!.id,
-                                        name: folder.name,
-                                        image: folder.image,
-                                        bookIds: folder.bookIds,
-                                        downloadedOnly: downloadedOnly,
-                                        readingOnly: readingOnly,
-                                      ),
-                                    ),
-                                  );
-                                  _refreshEntries();
-                                  return;
-                                }
-
-                                // Check connection status
-                                if (!mounted || !isSupportedEntry(entry)) {
-                                  return;
-                                }
-                                final connectionStatus =
-                                    Provider.of<ConnectionManager>(
-                                      context,
-                                      listen: false,
-                                    ).status;
-                                if (connectionStatus ==
-                                        ConnectionStatus.offline &&
-                                    !entry.downloaded) {
-                                  final cachedIndex =
-                                      await ReaderPageCache.getCurrentPage(
-                                        entry.id,
-                                      ) ??
-                                      entry.pageNum;
-                                  final cachedPage =
-                                      await ReaderPageCache.getPage(
-                                        entry.id,
-                                        cachedIndex,
-                                      );
-                                  if (!mounted || !context.mounted) return;
-                                  if (cachedPage == null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Server is offline and this page is not cached',
+                            return GridSelectionIndicator(
+                              selection: _gridSelection,
+                              index: index,
+                              child: KuroStyleBookCard(
+                                entry: entry,
+                                progressRevision: _cardProgressRevision,
+                                onMounted: (state) =>
+                                    _mountedCards[entry.id] = state,
+                                onUnmounted: (state) {
+                                  if (identical(
+                                    _mountedCards[entry.id],
+                                    state,
+                                  )) {
+                                    _mountedCards.remove(entry.id);
+                                  }
+                                },
+                                onEntryTapped: (coverRect) async {
+                                  if (entry.type == EntryType.folder) {
+                                    var folder = isar!.folders
+                                        .where()
+                                        .filter()
+                                        .idEqualTo(entry.id)
+                                        .findFirstSync();
+                                    await _pushWithPausedCovers(
+                                      MaterialPageRoute(
+                                        builder: (context) => CollectionScreen(
+                                          folderId: folder!.id,
+                                          name: folder.name,
+                                          image: folder.image,
+                                          bookIds: folder.bookIds,
+                                          downloadedOnly: downloadedOnly,
+                                          readingOnly: readingOnly,
                                         ),
-                                        duration: Duration(seconds: 2),
                                       ),
                                     );
+                                    _refreshEntries();
                                     return;
                                   }
-                                }
 
-                                // Open supported archives through the cover animation.
-                                final extension = entryFileExtension(
-                                  entry.path,
-                                );
-                                final isArchive = const [
-                                  'cbz',
-                                  'zip',
-                                ].contains(extension);
-                                final streamable = extension == 'cbz';
-                                if (isArchive &&
-                                    (entry.downloaded || streamable)) {
-                                  final firstPageReady = ValueNotifier<bool>(
-                                    false,
-                                  );
-                                  final openingState =
-                                      ValueNotifier<ReaderOpeningState>(
-                                        ReaderOpeningState.preparing,
+                                  // Check connection status
+                                  if (!mounted || !isSupportedEntry(entry)) {
+                                    return;
+                                  }
+                                  final connectionStatus =
+                                      Provider.of<ConnectionManager>(
+                                        context,
+                                        listen: false,
+                                      ).status;
+                                  if (connectionStatus ==
+                                          ConnectionStatus.offline &&
+                                      !entry.downloaded) {
+                                    final cachedIndex =
+                                        await ReaderPageCache.getCurrentPage(
+                                          entry.id,
+                                        ) ??
+                                        entry.pageNum;
+                                    final cachedPage =
+                                        await ReaderPageCache.getPage(
+                                          entry.id,
+                                          cachedIndex,
+                                        );
+                                    if (!mounted || !context.mounted) return;
+                                    if (cachedPage == null) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Server is offline and this page is not cached',
+                                          ),
+                                          duration: Duration(seconds: 2),
+                                        ),
                                       );
-                                  final skipReturnFade = ValueNotifier<bool>(
-                                    false,
+                                      return;
+                                    }
+                                  }
+
+                                  // Open supported archives through the cover animation.
+                                  final extension = entryFileExtension(
+                                    entry.path,
                                   );
-                                  final returnTarget =
-                                      ValueNotifier<CoverReturnTarget?>(null);
-                                  await _pushWithPausedCovers(
-                                    CoverOpeningRoute(
-                                      sourceRect: coverRect,
-                                      coverPath: entry.imagePath,
-                                      pageReady: firstPageReady,
-                                      openingState: openingState,
-                                      skipReturnFade: skipReturnFade,
-                                      returnTarget: returnTarget,
-                                      builder: (readerContext) {
-                                        final mediaQuery = MediaQuery.of(
-                                          readerContext,
+                                  final isArchive = const [
+                                    'cbz',
+                                    'zip',
+                                  ].contains(extension);
+                                  final streamable = extension == 'cbz';
+                                  if (isArchive &&
+                                      (entry.downloaded || streamable)) {
+                                    final firstPageReady = ValueNotifier<bool>(
+                                      false,
+                                    );
+                                    final openingState =
+                                        ValueNotifier<ReaderOpeningState>(
+                                          ReaderOpeningState.preparing,
                                         );
-                                        return MediaQuery(
-                                          data: mediaQuery.copyWith(
-                                            padding: mediaQuery.padding
-                                                .copyWith(
-                                                  top: MediaQuery.paddingOf(
-                                                    this.context,
-                                                  ).top,
-                                                ),
-                                          ),
-                                          child: _VolumeReaderSession(
-                                            initialEntry: entry,
-                                            orderedEntries: List<Entry>.of(
-                                              _unfilteredEntries,
+                                    final skipReturnFade = ValueNotifier<bool>(
+                                      false,
+                                    );
+                                    final returnTarget =
+                                        ValueNotifier<CoverReturnTarget?>(null);
+                                    await _pushWithPausedCovers(
+                                      CoverOpeningRoute(
+                                        sourceRect: coverRect,
+                                        coverPath: entry.imagePath,
+                                        pageReady: firstPageReady,
+                                        openingState: openingState,
+                                        skipReturnFade: skipReturnFade,
+                                        returnTarget: returnTarget,
+                                        builder: (readerContext) {
+                                          final mediaQuery = MediaQuery.of(
+                                            readerContext,
+                                          );
+                                          return MediaQuery(
+                                            data: mediaQuery.copyWith(
+                                              padding: mediaQuery.padding
+                                                  .copyWith(
+                                                    top: MediaQuery.paddingOf(
+                                                      this.context,
+                                                    ).top,
+                                                  ),
                                             ),
-                                            openingReady: firstPageReady,
-                                            openingState: openingState,
-                                            skipReturnFade: skipReturnFade,
-                                            returnTarget: returnTarget,
-                                            resolveReturnCover:
-                                                _resolveReturnCover,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    inCollection: true,
-                                  );
-                                  _refreshEntries();
-                                  return;
-                                }
-                                // Supported formats without a direct reader can still
-                                // be queued or marked via the same volume actions.
-                                await _showVolumeActions(entry);
-                              },
-                              onEntryLongPressed: () =>
-                                  _showVolumeActions(entry),
+                                            child: _VolumeReaderSession(
+                                              initialEntry: entry,
+                                              orderedEntries: List<Entry>.of(
+                                                _unfilteredEntries,
+                                              ),
+                                              openingReady: firstPageReady,
+                                              openingState: openingState,
+                                              skipReturnFade: skipReturnFade,
+                                              returnTarget: returnTarget,
+                                              resolveReturnCover:
+                                                  _resolveReturnCover,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                      inCollection: true,
+                                    );
+                                    _refreshEntries();
+                                    return;
+                                  }
+                                  // Supported formats without a direct reader can still
+                                  // be queued or marked via the same volume actions.
+                                  await _showVolumeActions(entry);
+                                },
+                                onEntryLongPressed: () =>
+                                    _showVolumeActions(entry),
+                              ),
                             );
                           },
                         ),
                       );
+                      final layout = CoverGridLayout.collection(context);
                       return GridKeyboardScroll(
                         controller: _gridController,
                         autofocus: true,
+                        selection: _gridSelection,
+                        itemCount: snapshot.data.length,
+                        columns: layout.columns,
+                        rowExtent: layout.rowHeight,
+                        contentStart: MediaQuery.paddingOf(context).top + 10,
+                        topOcclusion:
+                            MediaQuery.paddingOf(context).top +
+                            FloatingSurfaceHeader.toolbarHeight,
+                        onActivate: (index) {
+                          final entry = (snapshot.data as List<Entry>)[index];
+                          _mountedCards[entry.id]?._openFromCover();
+                        },
                         child: grid,
                       );
                     } else if (snapshot.hasData && snapshot.data!.isEmpty) {
