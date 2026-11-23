@@ -855,6 +855,7 @@ class LibraryScreenState extends State<LibraryScreen>
     return GridKeyboardScroll(
       controller: _libraryScrollController,
       autofocus: widget.isActive,
+      gamepadFocusAllowed: () => widget.isActive,
       selection: _gridSelection,
       itemCount: folders.length,
       columns: layout.columns,

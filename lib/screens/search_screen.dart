@@ -523,6 +523,8 @@ class _SearchScreenState extends State<SearchScreen>
         unawaited(_openResult(entry, rect));
       },
       onExitSelection: () => _searchFocusNode.requestFocus(),
+      gamepadFocusAllowed: () =>
+          _searchFocusNode.hasFocus || _gridFocusNode.hasFocus,
       child: screen,
     );
   }

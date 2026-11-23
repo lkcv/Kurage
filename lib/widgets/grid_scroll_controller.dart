@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:kurage/widgets/linux_gamepad_input.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 
@@ -32,6 +33,7 @@ class GridKeyboardScroll extends StatefulWidget {
     this.bottomOcclusion = 0,
     this.onActivate,
     this.onExitSelection,
+    this.gamepadFocusAllowed,
   });
 
   final ScrollController controller;
@@ -47,12 +49,14 @@ class GridKeyboardScroll extends StatefulWidget {
   final double bottomOcclusion;
   final ValueChanged<int>? onActivate;
   final VoidCallback? onExitSelection;
+  final bool Function()? gamepadFocusAllowed;
 
   @override
   State<GridKeyboardScroll> createState() => _GridKeyboardScrollState();
 }
 
 class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
+  final FocusNode _ownedFocusNode = FocusNode();
   Timer? _holdTimer;
   _GridDirection? _heldDirection;
 
@@ -174,9 +178,60 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    if (Platform.isLinux) LinuxGamepadInput.instance.addListener(_onGamepad);
+  }
+
+  @override
   void dispose() {
+    if (Platform.isLinux) LinuxGamepadInput.instance.removeListener(_onGamepad);
     _stop();
+    _ownedFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onGamepad(String action, bool pressed) {
+    if (!mounted || !_canSelect || ModalRoute.of(context)?.isCurrent != true ||
+        (widget.gamepadFocusAllowed != null &&
+            !widget.gamepadFocusAllowed!())) {
+      return;
+    }
+    final focus = widget.focusNode ?? _ownedFocusNode;
+    if (!focus.hasPrimaryFocus) {
+      if (!pressed || widget.gamepadFocusAllowed?.call() != true) return;
+      focus.requestFocus();
+    }
+    final direction = switch (action) {
+      'left' => _GridDirection.left,
+      'right' => _GridDirection.right,
+      'up' => _GridDirection.up,
+      'down' => _GridDirection.down,
+      _ => null,
+    };
+    if (direction != null) {
+      if (pressed) {
+        _startHold(direction);
+      } else if (_heldDirection == direction) {
+        _stop();
+      }
+      return;
+    }
+    if (!pressed) return;
+    if (action == 'confirm') {
+      final selected = widget.selection!.value;
+      if (selected != null) unawaited(_activate(selected));
+    } else if (action == 'back') {
+      _stop();
+      if (widget.selection!.value != null) {
+        widget.selection!.value = null;
+        widget.onExitSelection?.call();
+      } else if (widget.onExitSelection != null) {
+        widget.onExitSelection!.call();
+      } else {
+        unawaited(Navigator.of(context).maybePop());
+      }
+    }
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -233,7 +288,7 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   Widget build(BuildContext context) {
     if (!Platform.isLinux) return widget.child;
     return Focus(
-      focusNode: widget.focusNode,
+      focusNode: widget.focusNode ?? _ownedFocusNode,
       autofocus: widget.autofocus,
       canRequestFocus: widget.autofocus || widget.focusNode != null,
       skipTraversal: !widget.autofocus && widget.focusNode == null,

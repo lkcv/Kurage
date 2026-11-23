@@ -770,6 +770,8 @@ class _CollectionScreenState extends State<CollectionScreen>
                       return GridKeyboardScroll(
                         controller: _gridController,
                         autofocus: true,
+                        gamepadFocusAllowed: () =>
+                            _readerNavigatorKey.currentState?.canPop() != true,
                         selection: _gridSelection,
                         itemCount: snapshot.data.length,
                         columns: layout.columns,
