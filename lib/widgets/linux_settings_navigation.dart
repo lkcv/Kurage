@@ -26,6 +26,7 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
   final FocusScopeNode _scope = FocusScopeNode();
   final FocusNode _rootFocus = FocusNode(skipTraversal: true);
   bool _forward = true;
+  bool _mouseActive = true;
 
   @override
   void initState() {
@@ -59,7 +60,12 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
     );
   }
 
+  void _useNavigation() {
+    if (_mouseActive) setState(() => _mouseActive = false);
+  }
+
   void _move(bool forward) {
+    _useNavigation();
     _forward = forward;
     if (forward) {
       _scope.nextFocus();
@@ -69,6 +75,7 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
   }
 
   void _moveInDirection(TraversalDirection direction) {
+    _useNavigation();
     if (!widget.directionalTraversal) {
       _move(
         direction == TraversalDirection.down ||
@@ -88,6 +95,7 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
   }
 
   void _activate() {
+    _useNavigation();
     final focus = FocusManager.instance.primaryFocus;
     if (focus == null || focus == _rootFocus || !_rootFocus.hasFocus) {
       _scope.nextFocus();
@@ -143,7 +151,8 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
       case LogicalKeyboardKey.tab:
       case LogicalKeyboardKey.enter:
       case LogicalKeyboardKey.numpadEnter:
-            return KeyEventResult.ignored;
+        _useNavigation();
+        return KeyEventResult.ignored;
       case LogicalKeyboardKey.arrowUp:
         _moveInDirection(TraversalDirection.up);
         return KeyEventResult.handled;
@@ -183,7 +192,18 @@ class _LinuxSettingsNavigationState extends State<LinuxSettingsNavigation> {
                 context,
               ).colorScheme.primary.withValues(alpha: 0.15),
             ),
-            child: widget.child,
+            child: MouseRegion(
+              cursor: _mouseActive
+                  ? MouseCursor.defer
+                  : SystemMouseCursors.none,
+              onHover: (_) {
+                if (!_mouseActive) setState(() => _mouseActive = true);
+              },
+              child: IgnorePointer(
+                ignoring: !_mouseActive,
+                child: widget.child,
+              ),
+            ),
           ),
         ),
       ),

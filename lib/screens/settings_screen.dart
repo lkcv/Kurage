@@ -170,6 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ReaderCacheSettings(initialUsage: widget.cacheUsage),
             const SizedBox(height: 8),
             Card(
+              clipBehavior: Platform.isLinux ? Clip.antiAlias : Clip.none,
               child: Column(
                 children: [
                   Theme(
@@ -303,6 +304,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final selectedDirection = AppSettingsStore.current.readingDirection;
 
     return Card(
+      clipBehavior: Platform.isLinux ? Clip.antiAlias : Clip.none,
       child: Column(
         children: [
           _choiceTile(

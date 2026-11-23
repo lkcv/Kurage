@@ -1,3 +1,5 @@
+import 'dart:io' show Platform;
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:kurage/screens/downloaded_volumes_screen.dart';
@@ -154,158 +156,170 @@ class _ReaderCacheSettingsState extends State<ReaderCacheSettings> {
         ? (_usageBytes / maximumBytes).clamp(0.0, 1.0).toDouble()
         : 0.0;
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
+      clipBehavior: Platform.isLinux ? Clip.antiAlias : Clip.none,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Text(
               'Storage & cache',
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.download_for_offline_outlined),
-              title: Text(
-                'Downloaded volumes',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              subtitle: Text(
-                'Manage locally stored volumes',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const DownloadedVolumesScreen(),
-                ),
+          ),
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+            leading: const Icon(Icons.download_for_offline_outlined),
+            title: Text(
+              'Downloaded volumes',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+            subtitle: Text(
+              'Manage locally stored volumes',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => const DownloadedVolumesScreen(),
               ),
             ),
-            const Divider(height: 1),
-            const SizedBox(height: 14),
-            Row(
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Icon(
-                    Icons.menu_book_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Reader page cache',
-                        style: Theme.of(context).textTheme.bodyLarge,
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Icon(
+                        Icons.menu_book_outlined,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Previously viewed pages, up to your cache limit',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 12),
-                      Column(
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 6,
-                            crossAxisAlignment: WrapCrossAlignment.center,
+                          Text(
+                            'Reader page cache',
+                            style: Theme.of(context).textTheme.bodyLarge,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Previously viewed pages, up to your cache limit',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('${_displayMb(_usageBytes)} MB used of'),
-                              OutlinedButton.icon(
-                                onPressed: _busy ? null : _editLimit,
-                                icon: const Icon(Icons.edit_outlined, size: 16),
-                                label: Text('$_limitMb MB'),
-                                style: OutlinedButton.styleFrom(
-                                  visualDensity: VisualDensity.compact,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 10,
+                              Wrap(
+                                spacing: 6,
+                                runSpacing: 6,
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                children: [
+                                  Text('${_displayMb(_usageBytes)} MB used of'),
+                                  OutlinedButton.icon(
+                                    onPressed: _busy ? null : _editLimit,
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 16,
+                                    ),
+                                    label: Text('$_limitMb MB'),
+                                    style: OutlinedButton.styleFrom(
+                                      visualDensity: VisualDensity.compact,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              LinearProgressIndicator(
+                                value: usageFraction,
+                                backgroundColor: trackColor,
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
-                          LinearProgressIndicator(
-                            value: usageFraction,
-                            backgroundColor: trackColor,
-                          ),
+                          if (_error != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                _error!,
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.error,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
-                      if (_error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            _error!,
-                            style: TextStyle(
-                              color: Theme.of(context).colorScheme.error,
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
+                  ],
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _busy ? null : _clearReaderCache,
+                    icon: const Icon(Icons.delete_outline),
+                    label: const Text('Clear reader cache'),
                   ),
                 ),
-              ],
-            ),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: _busy ? null : _clearReaderCache,
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('Clear reader cache'),
-              ),
-            ),
-            const Divider(),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Icon(
-                    Icons.image_outlined,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Cover image cache',
-                        style: Theme.of(context).textTheme.bodyLarge,
+                const Divider(),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Icon(
+                        Icons.image_outlined,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      Text(
-                        'Covers and profile images are stored separately',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                      Row(
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              '${_displayMb(_coverUsageBytes)} MB used',
-                              style: Theme.of(context).textTheme.bodyMedium,
-                            ),
+                          Text(
+                            'Cover image cache',
+                            style: Theme.of(context).textTheme.bodyLarge,
                           ),
-                          TextButton.icon(
-                            onPressed: _busy ? null : _clearCovers,
-                            icon: const Icon(Icons.delete_outline),
-                            label: const Text('Clear covers'),
+                          Text(
+                            'Covers and profile images are stored separately',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '${_displayMb(_coverUsageBytes)} MB used',
+                                  style: Theme.of(context).textTheme.bodyMedium,
+                                ),
+                              ),
+                              TextButton.icon(
+                                onPressed: _busy ? null : _clearCovers,
+                                icon: const Icon(Icons.delete_outline),
+                                label: const Text('Clear covers'),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
