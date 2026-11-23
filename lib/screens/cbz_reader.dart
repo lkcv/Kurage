@@ -24,6 +24,7 @@ import 'package:kurage/cache/cover_cache.dart';
 import 'package:kurage/widgets/reader_pinch_zoom.dart';
 import 'package:kurage/widgets/reader_page_image.dart';
 import 'package:kurage/widgets/cover_opening_route.dart';
+import 'package:kurage/widgets/linux_gamepad_input.dart';
 
 // Keep the native Android stretch armed through insignificant scroll updates
 // while a boundary swipe is waiting for release.
@@ -188,6 +189,7 @@ class _CbzReaderState extends State<CbzReader>
   @override
   void initState() {
     super.initState();
+    if (Platform.isLinux) LinuxGamepadInput.instance.addListener(_onGamepad);
     WidgetsBinding.instance.addObserver(this);
     title = widget.title;
     comicId = widget.comicId;
@@ -219,6 +221,7 @@ class _CbzReaderState extends State<CbzReader>
 
   @override
   void dispose() {
+    if (Platform.isLinux) LinuxGamepadInput.instance.removeListener(_onGamepad);
     WidgetsBinding.instance.removeObserver(this);
     DownloadQueue.instance.removeListener(_onDownloadQueueChanged);
     _volumeSwipeMessageTimer?.cancel();
@@ -1084,6 +1087,55 @@ class _CbzReaderState extends State<CbzReader>
     _queuePage(_wheelDelta > 0 ? 1 : -1);
     _wheelDelta = 0;
     _lastWheelTurn = now;
+  }
+
+  void _onGamepad(String action, bool pressed) {
+    if (!pressed ||
+        !mounted ||
+        _loading ||
+        _exiting ||
+        !_appResumed ||
+        ModalRoute.of(context)?.isCurrent != true) {
+      return;
+    }
+
+    switch (action) {
+      case 'left' || 'right':
+        if (direction != 'vertical') {
+          final forward = action == (direction == 'rtl' ? 'left' : 'right');
+          _queuePage(forward ? 1 : -1);
+        }
+      case 'up' || 'down':
+        if (direction == 'vertical') {
+          _scrollVertical(action == 'down' ? 1 : -1);
+        }
+      case 'l1' || 'r1':
+        if (direction == 'vertical') {
+          _scrollVertical(action == 'r1' ? 1 : -1);
+        } else {
+          _queuePage(action == 'r1' ? 1 : -1);
+        }
+      case 'confirm' || 'menu':
+        _toggleOverlay();
+      case 'back':
+        _exit();
+    }
+  }
+
+  void _scrollVertical(int step) {
+    if (_zoomScrollLocked || !_verticalScrollController.hasClients) return;
+    final position = _verticalScrollController.position;
+    final target = (position.pixels + step * position.viewportDimension * 0.85)
+        .clamp(position.minScrollExtent, position.maxScrollExtent)
+        .toDouble();
+    if (target == position.pixels) return;
+    unawaited(
+      _verticalScrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+      ),
+    );
   }
 
   void _queuePage(int delta) {
