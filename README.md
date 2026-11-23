@@ -20,11 +20,11 @@ Kurage is a manga and comic reader for [Jellyfin](https://jellyfin.org/), built 
 
 ## Screenshots
 <p align="center">
-  <img src="assets/githubImages/screenshots/Phone/library.jpg" width="250" alt="Library">
-  <img src="assets/githubImages/screenshots/Phone/collection.jpg" width="250" alt="Collection">
+  <img src="assets/screenshots/library.jpg" width="250" alt="Library">
+  <img src="assets/screenshots/collection.jpg" width="250" alt="Collection">
   <br>
-  <img src="assets/githubImages/screenshots/Phone/reader-ui_all.jpg" width="250" alt="Reader-UI-All">
-  <img src="assets/githubImages/screenshots/Phone/reader_ui-immersive.jpg" width="250" alt="Reader-UI-Immersive">
+  <img src="assets/screenshots/reader-ui_all.jpg" width="250" alt="Reader-UI-All">
+  <img src="assets/screenshots/reader_ui-immersive.jpg" width="250" alt="Reader-UI-Immersive">
 </p>
 
 ## Platform Support
