@@ -1113,7 +1113,8 @@ class _CbzReaderState extends State<CbzReader>
         if (direction == 'vertical') {
           _scrollVertical(action == 'r1' ? 1 : -1);
         } else {
-          _stepPage(action == 'r1' ? 1 : -1);
+          final forward = action == (direction == 'rtl' ? 'l1' : 'r1');
+          _stepPage(forward ? 1 : -1);
         }
         return true;
       case 'confirm' || 'menu':
