@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:kurage/widgets/linux_gamepad_input.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:kurage/widgets/cover_grid_layout.dart';
 
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:material_ui/material_ui.dart' show Theme;
@@ -90,22 +91,30 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   Future<void> _ensureVisible(int index) async {
     if (!widget.controller.hasClients) return;
     final position = widget.controller.position;
-    final top =
-        widget.contentStart + (index ~/ widget.columns) * widget.rowExtent;
-    final bottom = top + widget.rowExtent;
+    final row = index ~/ widget.columns;
+    final top = widget.contentStart + row * widget.rowExtent;
+    final bottom = top + widget.rowExtent - CoverGridLayout.spacing;
     final offset = position.pixels;
     double? target;
-    if (top < offset + widget.topOcclusion) {
+
+    if (row == 0) {
+      target = position.minScrollExtent;
+    } else if (top < offset + widget.topOcclusion) {
       target = top - widget.topOcclusion;
     } else if (bottom >
         offset + position.viewportDimension - widget.bottomOcclusion) {
       target = bottom - position.viewportDimension + widget.bottomOcclusion;
     }
+
     if (target == null) return;
     final bounded = target
         .clamp(position.minScrollExtent, position.maxScrollExtent)
         .toDouble();
-    if ((bounded - offset).abs() < 1) return;
+
+    if (bounded == offset || (row != 0 && (bounded - offset).abs() < 1)) {
+      return;
+    }
+
     await widget.controller.animateTo(
       bounded,
       duration: const Duration(milliseconds: 180),
