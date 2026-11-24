@@ -15,6 +15,7 @@ if [[ "${KURAGE_APPIMAGE_CONTAINER:-0}" != 1 ]]; then
   exec podman run --rm "${tty[@]}" \
     -v "$(pwd -P):/src" -w /src -e HOME=/tmp \
     -e KURAGE_APPIMAGE_CONTAINER=1 \
+    -e URUNTIME_PRELOAD=1 \
     -e "UPDATE_SONY=${UPDATE_SONY:-0}" \
     -e "REBUILD_SONY=${REBUILD_SONY:-0}" \
     -e "SKIP_FLUTTER_BUILD=${SKIP_FLUTTER_BUILD:-0}" \
