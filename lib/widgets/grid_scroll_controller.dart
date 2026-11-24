@@ -208,6 +208,17 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   void didUpdateWidget(GridKeyboardScroll oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.controller != widget.controller) _stop();
+    if (Platform.isLinux && widget.autofocus && !oldWidget.autofocus) {
+      // A retained grid needs focus again when its tab becomes active.
+      // Wait until Focus has updated canRequestFocus in this frame.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            widget.autofocus &&
+            ModalRoute.of(context)?.isCurrent == true) {
+          (widget.focusNode ?? _ownedFocusNode).requestFocus();
+        }
+      });
+    }
   }
 
   @override

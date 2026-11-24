@@ -1024,6 +1024,28 @@ class LibraryScreenState extends State<LibraryScreen>
             ),
           )
         : null;
+
+    // Desktop filters have dedicated shortcuts, not traversal targets.
+    Widget filterButton({
+      required IconData icon,
+      required bool active,
+      required String tooltip,
+      required VoidCallback onPressed,
+    }) => ExcludeFocus(
+      excluding: Platform.isLinux,
+      child: IconButton(
+        style: filterButtonStyle,
+        icon: Icon(
+          icon,
+          color: active
+              ? Theme.of(context).colorScheme.primary
+              : headerForeground,
+        ),
+        tooltip: tooltip,
+        onPressed: onPressed,
+      ),
+    );
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: FloatingSurfaceHeader(
@@ -1048,14 +1070,9 @@ class LibraryScreenState extends State<LibraryScreen>
           // A single tap filters to series with complete local volumes.
           Positioned(
             left: 4,
-            child: IconButton(
-              style: filterButtonStyle,
-              icon: Icon(
-                Icons.download_for_offline_outlined,
-                color: _filter.downloadedOnly
-                    ? Theme.of(context).colorScheme.primary
-                    : headerForeground,
-              ),
+            child: filterButton(
+              icon: Icons.download_for_offline_outlined,
+              active: _filter.downloadedOnly,
               tooltip: _filter.downloadedOnly
                   ? 'Disable Downloaded filter'
                   : 'Show downloaded series',
@@ -1178,14 +1195,9 @@ class LibraryScreenState extends State<LibraryScreen>
           // Symmetric with Downloaded on the far left. Filters combine.
           Positioned(
             right: 4,
-            child: IconButton(
-              style: filterButtonStyle,
-              icon: Icon(
-                Icons.chrome_reader_mode_outlined,
-                color: _filter.readingOnly
-                    ? Theme.of(context).colorScheme.primary
-                    : headerForeground,
-              ),
+            child: filterButton(
+              icon: Icons.chrome_reader_mode_outlined,
+              active: _filter.readingOnly,
               tooltip: _filter.readingOnly
                   ? 'Disable Continue Reading filter'
                   : 'Show series being read',
