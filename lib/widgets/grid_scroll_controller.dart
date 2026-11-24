@@ -74,26 +74,32 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
     _heldDirection = null;
   }
 
+  CoverGridViewport get _viewport => CoverGridViewport(
+    metrics: widget.controller.position,
+    itemCount: widget.itemCount,
+    columns: widget.columns,
+    rowExtent: widget.rowExtent,
+    contentStart: widget.contentStart,
+    topOcclusion: widget.topOcclusion,
+    bottomOcclusion: widget.bottomOcclusion,
+  );
+
   int _firstVisibleIndex() {
-    if (!widget.controller.hasClients || widget.controller.offset <= 0) {
+    if (!widget.controller.hasClients ||
+        widget.controller.offset <= 0 ||
+        !widget.controller.position.hasContentDimensions) {
       return 0;
     }
-    final firstRow =
-        ((widget.controller.offset +
-                    widget.topOcclusion -
-                    widget.contentStart) /
-                widget.rowExtent)
-            .ceil()
-            .clamp(0, widget.itemCount - 1);
-    return (firstRow * widget.columns).clamp(0, widget.itemCount - 1);
+    return _viewport.firstVisibleIndex();
   }
 
   Future<void> _ensureVisible(int index) async {
     if (!widget.controller.hasClients) return;
     final position = widget.controller.position;
     final row = index ~/ widget.columns;
-    final top = widget.contentStart + row * widget.rowExtent;
-    final bottom = top + widget.rowExtent - CoverGridLayout.spacing;
+    final viewport = _viewport;
+    final top = viewport.rowTop(index);
+    final bottom = viewport.rowBottom(index);
     final offset = position.pixels;
     double? target;
 
@@ -187,8 +193,14 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
   }
 
   Future<void> _activate(int index) async {
+    final controller = widget.controller;
     await _ensureVisible(index);
-    if (!mounted || widget.selection?.value != index) return;
+    if (!mounted ||
+        controller != widget.controller ||
+        index >= widget.itemCount ||
+        widget.selection?.value != index) {
+      return;
+    }
     widget.onActivate?.call(index);
   }
 

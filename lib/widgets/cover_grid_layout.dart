@@ -61,3 +61,56 @@ class CoverGridLayout {
         mainAxisSpacing: spacing,
       );
 }
+
+/// Geometry of a laid-out cover grid, excluding overlaid controls.
+class CoverGridViewport {
+  const CoverGridViewport({
+    required this.metrics,
+    required this.itemCount,
+    required this.columns,
+    required this.rowExtent,
+    required this.contentStart,
+    required this.topOcclusion,
+    required this.bottomOcclusion,
+  });
+
+  final ScrollMetrics metrics;
+  final int itemCount;
+  final int columns;
+  final double rowExtent;
+  final double contentStart;
+  final double topOcclusion;
+  final double bottomOcclusion;
+
+  double get visibleTop => metrics.pixels + topOcclusion;
+  double get visibleBottom =>
+      metrics.pixels + metrics.viewportDimension - bottomOcclusion;
+
+  double rowTop(int index) => contentStart + (index ~/ columns) * rowExtent;
+  double rowBottom(int index) =>
+      rowTop(index) + rowExtent - CoverGridLayout.spacing;
+
+  bool isFullyVisible(int index) =>
+      index >= 0 &&
+      index < itemCount &&
+      rowTop(index) >= visibleTop &&
+      rowBottom(index) <= visibleBottom;
+
+  /// Prefer a fully visible row; fall back to a partially visible one.
+  /// Call only for a nonempty grid with valid layout metrics.
+  int firstVisibleIndex() {
+    final lastRow = (itemCount - 1) ~/ columns;
+    final firstRow = ((visibleTop - contentStart) / rowExtent).ceil().clamp(
+      0,
+      lastRow,
+    );
+    final index = firstRow * columns;
+    if (isFullyVisible(index)) return index;
+
+    final partialRow =
+        ((visibleTop - contentStart + CoverGridLayout.spacing) / rowExtent)
+            .floor()
+            .clamp(0, lastRow);
+    return partialRow * columns;
+  }
+}

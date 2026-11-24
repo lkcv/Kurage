@@ -117,11 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return true;
       case 'l1':
         if (_selectedIndex != 0) return false;
-        _libraryKey.currentState?.toggleDownloadedFilter();
+        _libraryKey.currentState?.toggleDownloadedFilter(keepSelection: true);
         return true;
       case 'r1':
         if (_selectedIndex != 0) return false;
-        _libraryKey.currentState?.toggleReadingFilter();
+        _libraryKey.currentState?.toggleReadingFilter(keepSelection: true);
         return true;
     }
     return false;
@@ -154,10 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _onTabChange(2);
       case LogicalKeyboardKey.keyD:
         if (_selectedIndex != 0) return false;
-        _libraryKey.currentState?.toggleDownloadedFilter();
+        _libraryKey.currentState?.toggleDownloadedFilter(keepSelection: true);
       case LogicalKeyboardKey.keyR:
         if (_selectedIndex != 0) return false;
-        _libraryKey.currentState?.toggleReadingFilter();
+        _libraryKey.currentState?.toggleReadingFilter(keepSelection: true);
       default:
         return false;
     }

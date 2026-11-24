@@ -44,6 +44,7 @@ class LibraryScreen extends StatefulWidget {
 class LibraryScreenState extends State<LibraryScreen>
     with WidgetsBindingObserver {
   static const double _gridTopGap = 12;
+  static const double _gridBottomOcclusion = 70;
 
   double _headerHeight(BuildContext context) =>
       MediaQuery.paddingOf(context).top + FloatingSurfaceHeader.toolbarHeight;
@@ -127,7 +128,7 @@ class LibraryScreenState extends State<LibraryScreen>
           _lastFolders != null &&
           _visibleFolders(_lastFolders!).isEmpty) {
         // The last matching volume vanished while Library was offstage.
-        _filter = const LibraryFilter();
+        _changeFilter(const LibraryFilter(), keepSelection: true);
         _coverSignature = null;
         _scheduleCoverWarming();
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -172,23 +173,35 @@ class LibraryScreenState extends State<LibraryScreen>
   List<Folder> _visibleFolders(List<Folder> all) =>
       _filter.filterFolders(all, _matchingIds());
 
-  void _selectFilter(LibraryFilter next) {
+  void _changeFilter(LibraryFilter next, {bool keepSelection = false}) {
+    final restore =
+        Platform.isLinux &&
+        keepSelection &&
+        (_gridSelection.value != null || _restoreSelectionAfterLayout);
     _gridSelection.value = null;
-    setState(() {
-      _filter = next;
-      _readingIdsCache = null;
-    });
+    _gridFolders = const [];
+    _restoreSelectionAfterLayout = restore;
+    _filter = next;
+    _readingIdsCache = null;
+  }
+
+  void _selectFilter(LibraryFilter next, {bool keepSelection = false}) {
+    setState(() => _changeFilter(next, keepSelection: keepSelection));
     _coverSignature = null;
     _coverPrewarmer.filterChanged();
     _scheduleCoverWarming();
     _scheduleSpeculative();
   }
 
-  void toggleDownloadedFilter() =>
-      _selectFilter(_filter.copyWith(downloadedOnly: !_filter.downloadedOnly));
+  void toggleDownloadedFilter({bool keepSelection = false}) => _selectFilter(
+    _filter.copyWith(downloadedOnly: !_filter.downloadedOnly),
+    keepSelection: keepSelection,
+  );
 
-  void toggleReadingFilter() =>
-      _selectFilter(_filter.copyWith(readingOnly: !_filter.readingOnly));
+  void toggleReadingFilter({bool keepSelection = false}) => _selectFilter(
+    _filter.copyWith(readingOnly: !_filter.readingOnly),
+    keepSelection: keepSelection,
+  );
 
   bool _inForeground = true;
   bool _startupSyncScheduled = false;
@@ -206,10 +219,71 @@ class LibraryScreenState extends State<LibraryScreen>
   // Tell visible cards to recalculate progress after leaving a collection.
   final ValueNotifier<int> _progressRevision = ValueNotifier<int>(0);
   final ValueNotifier<int?> _gridSelection = ValueNotifier<int?>(null);
+  // Store IDs rather than indices: filter membership can change.
+  final Map<String, String> _filterSelectionIds = {};
+  List<Folder> _gridFolders = const [];
+  bool _restoreSelectionAfterLayout = false;
+
+  void _rememberGridSelection() {
+    final index = _gridSelection.value;
+    if (index == null || index < 0 || index >= _gridFolders.length) return;
+    _restoreSelectionAfterLayout = false;
+    _filterSelectionIds[_libraryPageKey] = _gridFolders[index].id;
+  }
+
+  void _syncGridSelection(List<Folder> folders) {
+    if (!Platform.isLinux) return;
+    _gridFolders = folders;
+    final previous = _gridSelection.value;
+    final savedId = _filterSelectionIds[_libraryPageKey];
+    final restore = _restoreSelectionAfterLayout;
+    if (!restore &&
+        (previous == null ||
+            (previous < folders.length && folders[previous].id == savedId))) {
+      return;
+    }
+    final controller = _libraryScrollController;
+    // PageStorage restores the destination scroll offset during layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          controller != _libraryScrollController ||
+          !identical(_gridFolders, folders) ||
+          _gridSelection.value != previous ||
+          _restoreSelectionAfterLayout != restore) {
+        return;
+      }
+      if (folders.isEmpty) {
+        _restoreSelectionAfterLayout = false;
+        _gridSelection.value = null;
+        return;
+      }
+      if (!controller.hasClients || !controller.position.hasContentDimensions) {
+        return;
+      }
+      _restoreSelectionAfterLayout = false;
+      final layout = CoverGridLayout.library(context);
+      final viewport = CoverGridViewport(
+        metrics: controller.position,
+        itemCount: folders.length,
+        columns: layout.columns,
+        rowExtent: layout.rowHeight,
+        contentStart: _headerHeight(context) + _gridTopGap,
+        topOcclusion: _headerHeight(context),
+        bottomOcclusion: _gridBottomOcclusion,
+      );
+      final savedIndex = folders.indexWhere((folder) => folder.id == savedId);
+      final index = viewport.isFullyVisible(savedIndex)
+          ? savedIndex
+          : viewport.firstVisibleIndex();
+      _filterSelectionIds[_libraryPageKey] = folders[index].id;
+      _gridSelection.value = index;
+    });
+  }
 
   @override
   void initState() {
     super.initState();
+    if (Platform.isLinux) _gridSelection.addListener(_rememberGridSelection);
     // Never reissue a category request merely because a parent rebuilds.
     _categoriesFuture =
         getServerCategories(
@@ -692,7 +766,7 @@ class LibraryScreenState extends State<LibraryScreen>
         _filter.isActive &&
         _lastFolders != null &&
         _visibleFolders(_lastFolders!).isEmpty) {
-      _selectFilter(const LibraryFilter());
+      _selectFilter(const LibraryFilter(), keepSelection: true);
     } else if (removed > 0) {
       setState(() {});
     }
@@ -752,7 +826,9 @@ class LibraryScreenState extends State<LibraryScreen>
           _lastFolders != null &&
           _visibleFolders(_lastFolders!).isEmpty;
       setState(() {
-        if (showAll) _filter = const LibraryFilter();
+        if (showAll) {
+          _changeFilter(const LibraryFilter(), keepSelection: true);
+        }
       });
       _progressRevision.value++;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -781,6 +857,7 @@ class LibraryScreenState extends State<LibraryScreen>
   Widget _buildGrid(List<Folder> allFolders) {
     final matchingIds = _matchingIds();
     final folders = _filter.filterFolders(allFolders, matchingIds);
+    _syncGridSelection(folders);
     final grid = CustomScrollView(
       key: PageStorageKey<String>(_libraryPageKey),
       physics: const AlwaysScrollableScrollPhysics(),
@@ -858,7 +935,7 @@ class LibraryScreenState extends State<LibraryScreen>
       rowExtent: layout.rowHeight,
       contentStart: _headerHeight(context) + _gridTopGap,
       topOcclusion: _headerHeight(context),
-      bottomOcclusion: 70,
+      bottomOcclusion: _gridBottomOcclusion,
       onActivate: (index) => _openFolder(folders[index]),
       child: grid,
     );
