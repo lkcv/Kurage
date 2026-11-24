@@ -97,13 +97,27 @@ class _GridKeyboardScrollState extends State<GridKeyboardScroll> {
     final offset = position.pixels;
     double? target;
 
+    final origin = position.minScrollExtent;
+    final topLimit = top - widget.topOcclusion;
+    final bottomLimit =
+        bottom - position.viewportDimension + widget.bottomOcclusion;
+    // Snap only when navigation needs to scroll. All aligned positions
+    // preserve the original grid gap and row rhythm.
     if (row == 0) {
-      target = position.minScrollExtent;
-    } else if (top < offset + widget.topOcclusion) {
-      target = top - widget.topOcclusion;
-    } else if (bottom >
-        offset + position.viewportDimension - widget.bottomOcclusion) {
-      target = bottom - position.viewportDimension + widget.bottomOcclusion;
+      target = origin;
+    } else if (topLimit < offset - 1) {
+      target =
+          origin +
+          ((topLimit - origin) / widget.rowExtent).floor() * widget.rowExtent;
+    } else if (bottomLimit > offset + 1) {
+      final aligned =
+          origin +
+          ((bottomLimit - origin) / widget.rowExtent).ceil() * widget.rowExtent;
+      // A short viewport may not admit a fully visible, aligned row.
+      // Prefer visibility over alignment in that case.
+      target = aligned <= topLimit
+          ? aligned
+          : (bottomLimit <= topLimit ? bottomLimit : topLimit);
     }
 
     if (target == null) return;
