@@ -603,7 +603,7 @@ class _CbzReaderState extends State<CbzReader>
   }
 
   void _schedulePrefilterWindow(int index) {
-    if (!mounted || direction == 'vertical') return;
+    if (!mounted || Platform.isLinux || direction == 'vertical') return;
     final size = MediaQuery.sizeOf(context);
     final ratio = MediaQuery.devicePixelRatioOf(context);
     _prefilter.configure(
@@ -1682,7 +1682,7 @@ class _CbzReaderState extends State<CbzReader>
         () => GlobalKey<ReaderPinchZoomState>(),
       ),
       scaleNotifier: scale,
-      child: index == 0
+      child: Platform.isLinux || index == 0
           ? Image.file(
               file,
               fit: BoxFit.contain,
