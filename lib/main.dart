@@ -1,3 +1,4 @@
+import 'package:kurage/widgets/stable_android_insets.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
@@ -128,9 +129,15 @@ class MyApp extends StatelessWidget {
               ThemeData themeData = themeChangeNotifier.getTheme;
               return MaterialApp(
                 navigatorKey: _navigatorKey,
-                builder: (context, child) => Platform.isLinux
-                    ? _LinuxShortcutBindings(child: child!)
-                    : child!,
+                builder: (context, child) {
+                  if (Platform.isLinux) {
+                    return _LinuxShortcutBindings(child: child!);
+                  }
+                  if (Platform.isAndroid) {
+                    return StableAndroidInsets(child: child!);
+                  }
+                  return child!;
+                },
                 title: 'Kurage',
                 debugShowCheckedModeBanner: false,
                 locale: const Locale('en'),
